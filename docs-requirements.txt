@@ -1,0 +1,13 @@
+# These are required for building the documentation but not necessarily
+# required for _using_ it
+
+# sphinx
+numpydoc
+sphinx-copybutton
+sphinx_rtd_theme
+doctr
+recommonmark
+doctr-versions-menu
+
+# Temporarily require caproto master for building docs:
+git+https://github.com/caproto/caproto

@@ -1,0 +1,32 @@
+version: ~> 1.0
+
+env:
+  global:
+    # doctr generated secure variable for documentation upload
+    - secure: "<your secure here>"
+    # enable the usage of versions menu which allow versioning of the docs
+    # pages and not only the master branch
+    - DOCTR_VERSIONS_MENU="1"
+    # Dependency files used to build the documentation (space separated)
+    - DOCS_REQUIREMENTS="docs-requirements.txt dev-requirements.txt requirements.txt"
+    # Options to be passed to flake8 for package linting. Usually this is just
+    # the package name but you can enable other flake8 options via this config
+    - PYTHON_LINT_OPTIONS="archstats"
+
+    # The name of the conda package
+    - CONDA_PACKAGE="archstats"
+    # The folder containing the conda recipe (meta.yaml)
+    - CONDA_RECIPE_FOLDER="conda-recipe"
+
+    # Requirements file with contents for tests dependencies
+    - CONDA_REQUIREMENTS="dev-requirements.txt"
+    # Extra dependencies needed to run the tests which are not included
+    # at the recipe and dev-requirements.txt.
+    - CONDA_EXTRAS=""
+
+    # Extra dependencies needed to run the test with Pip
+    - PIP_EXTRAS=""
+
+
+import:
+  - pcdshub/pcds-ci-helpers:travis/shared_configs/standard-python-conda.yml
