@@ -2,8 +2,8 @@ version: ~> 1.0
 
 env:
   global:
-    # doctr generated secure variable for documentation upload
-    - secure: "<your secure here>"
+    # Doctr deploy key for pcdshub/archstats
+    - secure: "fmyE7l0lyX+xJtrIVfboqn2/DWgqAFpBZ1gBjXZZ1FX+v8eb7XHd2IIfaUFHwOkX/bYO5LapLtL1K5W34terEmiuXlmj1m4MYc7BVEhtqKjk14Q4hx1BGmR5+YEBKuUkOqN4AIKuW1Z4nvnWzMN8nLymBAoGSvx400UBJyKM3OWTz7MGWRAvFr3nDBBOIELwDDNQDdTeeL88HLGchksWEJf+dEIIlKJuFvlIDQwGZ8xlbXkXVbXPB1L6BMB62DT4SjB8fIMqs83ro8Gn6ii3tHW1LkKvyujermMpGUiRxr/MWrMSnZzj5a0O+IErfr1l/KOjUiAp16RrmQdFhC9X0A3UgzX8EVRkjBNDdG28+oWgqzfEck03CJotb0HDJPpksgO/lN3JszFHnNssq0AN9vBufDy5xe/Wqo2iXZJikqzVr6yluY3yro55kC9uIOgofZOwWsC7EF+Ggq83kqEUPVPJ2mvQxJZi5wQ7DSVPzxpwy1DVayXlNbY1POxbPcdv/mZe6B6H2kTR5b0QK5PI7ViATqlADx8zrxzdbSXvEOwIABZNs4jOIWpwBJ//qIRUcTE2IaDvEWy8l7L0dwvHL3qUrDf0aXKkCV97gFMvoTovCMaVrAoai5gezs4rY6jbCzi9gx/9VfvPz1v0YxG250SXw89mVwmCFz3WkNE+R4w="
     # enable the usage of versions menu which allow versioning of the docs
     # pages and not only the master branch
     - DOCTR_VERSIONS_MENU="1"
