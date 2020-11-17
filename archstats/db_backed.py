@@ -133,7 +133,7 @@ async def restore_from_document(group: PVGroup, doc: dict, timestamp_key: str = 
 
 
 class DatabaseHandler(DatabaseHandlerInterface):
-    TIMESTAMP_KEY = 'timestamp'
+    TIMESTAMP_KEY: str = 'timestamp'
 
     def get_instances(self) -> Generator[PvpropertyData, None, None]:
         """Get all pvproperty instances to save."""
@@ -186,6 +186,12 @@ class ElasticHandler(DatabaseHandler):
       change in the database outside of caproto
     * Field information is not currently stored
     """
+
+    index: str
+    group: PVGroup
+    es: AsyncElasticsearch
+    restore_on_startup: bool
+    _restoring: bool
 
     def __init__(self,
                  group: PVGroup,
