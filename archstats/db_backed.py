@@ -6,10 +6,8 @@ import operator
 import uuid
 from typing import Generator, Optional, Tuple
 
-import caproto
-import caproto.server
 from caproto.server import (AsyncLibraryLayer, PVGroup, PvpropertyData,
-                            SubGroup, pvproperty)
+                            pvproperty)
 from elasticsearch import AsyncElasticsearch
 
 logger = logging.getLogger(__name__)
@@ -142,7 +140,7 @@ class DatabaseHandler(DatabaseHandlerInterface):
             if '.' in dotted_attr:
                 # one level deep for now
                 ...
-            elif dotted_attr not in self.db_skip_attributes:
+            elif dotted_attr not in self.skip_attributes:
                 yield channeldata
 
     def get_timestamp_from_instances(
@@ -195,7 +193,7 @@ class ElasticHandler(DatabaseHandler):
 
     def __init__(self,
                  group: PVGroup,
-                 db_skip_attributes: Optional[set] = None,
+                 skip_attributes: Optional[set] = None,
                  es: AsyncElasticsearch = None,
                  index: Optional[str] = None,
                  restore_on_startup: bool = True,
@@ -205,7 +203,7 @@ class ElasticHandler(DatabaseHandler):
         default_idx = f'{group.name}-{group.prefix}'.replace(':', '_').lower()
         self.index = index or default_idx
 
-        self.db_skip_attributes = db_skip_attributes or {}
+        self.skip_attributes = skip_attributes or {}
         if es is None:
             es = AsyncElasticsearch(['localhost:9200'])
         self.es = es
@@ -307,41 +305,3 @@ class AutomaticElasticHandler(ElasticHandler):
                  ):
         super().__init__(*args, **kwargs)
         self.min_write_period = min_write_period
-
-
-class Test(PVGroup):
-    db_helper = SubGroup(DatabaseBackedHelper)
-    item_a = pvproperty(value=5)
-    item_b = pvproperty(value=6)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.db_helper.handler = ManualElasticHandler(self)
-
-    async def group_write(self, instance: PvpropertyData, value):
-        'Generic write called for channels without `put` defined'
-        await self.db_helper.write(instance, value)
-        return value
-
-    @item_a.startup
-    async def item_a(self, instance: PvpropertyData, async_lib: AsyncLibraryLayer):
-        """
-        Startup hook for item_a.
-        """
-        while True:
-            await async_lib.library.sleep(1.0)
-            await self.db_helper.store()
-
-
-def main():
-    ioc_options, run_options = caproto.server.ioc_arg_parser(
-        default_prefix='ARCH:',
-        desc='Test',
-    )
-
-    ioc = Test(**ioc_options)
-    caproto.server.run(ioc.pvdb, **run_options)
-
-
-if __name__ == '__main__':
-    main()
