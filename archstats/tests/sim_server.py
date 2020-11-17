@@ -1,5 +1,6 @@
 import logging
 import pathlib
+from functools import partial
 
 import aiohttp
 from aiohttp import web
@@ -17,10 +18,21 @@ async def handle_data(request: aiohttp.web.BaseRequest):
         return web.Response(text=f.read())
 
 
+async def handle_appliance_data(json_filename, request: aiohttp.web.BaseRequest):
+    json_filename = JSON_PATH / json_filename.format(appliance=request.query['appliance'])
+    with open(f'{json_filename}.json', 'rt') as f:
+        return web.Response(text=f.read())
+
+
 app = web.Application()
 app.add_routes(
     [
         web.get('/mgmt/bpl/getApplianceMetrics', handle_data),
+        web.get('/mgmt/bpl/getStorageMetrics', handle_data),
+        web.get('/mgmt/bpl/getInstanceMetrics', handle_data),
+        web.get('/mgmt/bpl/getApplianceMetricsForAppliance',
+                partial(handle_appliance_data,
+                        'getApplianceMetricsForAppliance-{appliance}')),
     ]
 )
 
