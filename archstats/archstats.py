@@ -2,6 +2,7 @@ import ast
 import dataclasses
 import json
 import logging
+from functools import partial
 from typing import Any, List, Optional, Type
 
 import aiohttp
@@ -46,7 +47,8 @@ def key_to_pv(key: str) -> str:
     return inflection.camelize(parametrized.replace("-", "_"))
 
 
-def _fix_metric_value(value: str) -> Any:
+def archiver_literal_eval(value: str) -> Any:
+    """literaleval-like function for archiver metrics values."""
     try:
         evaluated = ast.literal_eval(value)
     except Exception:
@@ -54,12 +56,12 @@ def _fix_metric_value(value: str) -> Any:
 
     # Numbers such as: 160,732 become (160, 732)
     if isinstance(evaluated, tuple):
-        return _fix_metric_value(value.replace(',', ''))
+        return archiver_literal_eval(value.replace(',', ''))
     return evaluated
 
 
 def _metric_value_to_kwargs(key: str, value: Any) -> dict:
-    value = _fix_metric_value(value)
+    value = archiver_literal_eval(value)
 
     kwargs = {
         'doc': key,
@@ -103,24 +105,22 @@ def instance_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
     ]
 
 
-def detailed_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
+def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List[dict]:
     """
     Make a key-pvproperty kwarg dictionary from a metrics JSON string.
 
     These detailed metrics are a list of dictionaries with the keys: value,
     name, and source.
     """
-    items = [
-        (key_to_pv(item['name']), item)
-        for item in json.loads(metrics_string)
-    ]
+    def to_instance_pv(key):
+        return instance + ':' + key_to_pv(key)
 
     return [
         dict(
-            name=pv,
+            name=to_instance_pv(item['name']),
             **_metric_value_to_kwargs(item['name'], item["value"])
         )
-        for pv, item in items
+        for item in json.loads(metrics_string)
     ]
 
 
@@ -258,7 +258,7 @@ class Archstats(PVGroup):
                 f'DetailedMetricsGroup{instance}',
                 Request(
                     url=f'{self.appliance_url}mgmt/bpl/getApplianceMetricsForAppliance',
-                    transformer=detailed_metrics_to_pvproperties,
+                    transformer=partial(detailed_metrics_to_pvproperties, instance),
                     parameters=dict(appliance=instance),
                 )
             )
@@ -305,12 +305,3 @@ class Archstats(PVGroup):
                 await self._update_group(group)
                 await async_lib.library.sleep(0.1)
             await async_lib.library.sleep(self.update_rate)
-
-    # @item_a.startup
-    # async def item_a(self, instance: PvpropertyData, async_lib: AsyncLibraryLayer):
-    #     """
-    #     Startup hook for item_a.
-    #     """
-    #     while True:
-    #         await async_lib.library.sleep(1.0)
-    #         await self.db_helper.store()
