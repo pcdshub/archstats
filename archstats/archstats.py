@@ -229,7 +229,7 @@ class Archstats(PVGroup):
     """
 
     updater = pvproperty(value=0, name='__UPDATER__', read_only=True)
-    update_rate = 5
+    update_rate = 30
 
     def __init__(self, *args, appliance_url, **kwargs):
         super().__init__(*args, **kwargs)
