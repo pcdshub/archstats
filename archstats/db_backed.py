@@ -15,7 +15,7 @@ from elasticsearch import AsyncElasticsearch
 logger = logging.getLogger(__name__)
 
 
-class DatabaseHandler(abc.ABC):
+class DatabaseHandlerInterface(abc.ABC):
     """Database handler interface class."""
     # @abc.abstractmethod
     # def set_group(self, group: PVGroup):
@@ -30,6 +30,9 @@ class DatabaseHandler(abc.ABC):
     async def shutdown(self, group: PVGroup, async_lib: AsyncLibraryLayer):
         """Shutdown hook."""
         ...
+
+    async def get_last_document(self) -> dict:
+        """Get the last document from the database."""
 
     @abc.abstractmethod
     async def write(self, instance: PvpropertyData, value):
@@ -58,12 +61,12 @@ class DatabaseBackedHelper(PVGroup):
         self._db = None
 
     @property
-    def handler(self) -> DatabaseHandler:
+    def handler(self) -> DatabaseHandlerInterface:
         """The database handler."""
         return self._db
 
     @handler.setter
-    def handler(self, handler: DatabaseHandler):
+    def handler(self, handler: DatabaseHandlerInterface):
         if self._db is not None:
             raise RuntimeError('Cannot set `db` twice.')
 
@@ -92,6 +95,88 @@ class DatabaseBackedHelper(PVGroup):
         await self._db.store()
 
 
+def get_latest_timestamp(instances: Tuple[PvpropertyData, ...]) -> datetime.datetime:
+    """Determine the latest timestamp for use in a document."""
+    latest_posix_stamp = max(
+        channeldata.timestamp for channeldata in instances
+    )
+
+    return datetime.datetime.fromtimestamp(latest_posix_stamp)
+
+
+async def restore_from_document(group: PVGroup, doc: dict, timestamp_key: str = 'timestamp'):
+    """Restore the PVGroup state from the given document."""
+    timestamp = doc[timestamp_key]
+    if isinstance(timestamp, str):
+        timestamp = datetime.datetime.fromisoformat(timestamp).timestamp()
+
+    for attr, value in doc.items():
+        if attr == timestamp_key:
+            continue
+
+        try:
+            prop = getattr(group, attr)
+        except AttributeError:
+            group.log.warning(
+                'Attribute no longer valid: %s (value=%s)', attr, value
+            )
+            continue
+
+        try:
+            await prop.write(value=value, timestamp=timestamp)
+        except Exception:
+            group.log.exception(
+                'Failed to restore %s value=%s', attr, value
+            )
+        else:
+            group.log.info('Restored %s = %s', attr, value)
+
+
+class DatabaseHandler(DatabaseHandlerInterface):
+    TIMESTAMP_KEY = 'timestamp'
+
+    def get_instances(self) -> Generator[PvpropertyData, None, None]:
+        """Get all pvproperty instances to save."""
+        for dotted_attr, pvprop in self.group._pvs_.items():
+            channeldata = operator.attrgetter(dotted_attr)(self.group)
+            if '.' in dotted_attr:
+                # one level deep for now
+                ...
+            elif dotted_attr not in self.db_skip_attributes:
+                yield channeldata
+
+    def get_timestamp_from_instances(
+            self, instances: Tuple[PvpropertyData, ...]
+            ) -> datetime.datetime:
+        """Get the timestamp to use in the document, given the instances."""
+        # By default, get the latest timestamp:
+        return get_latest_timestamp(instances)
+
+    def create_document(self) -> Optional[dict]:
+        """Create a document based on the current IOC state."""
+        instances = tuple(self.get_instances())
+        document = {
+            channeldata.pvspec.attr: channeldata.value
+            for channeldata in instances
+        }
+
+        if not document:
+            return None
+
+        document[self.TIMESTAMP_KEY] = self.get_timestamp_from_instances(instances)
+        return document
+
+    async def restore_from_document(self, doc: dict):
+        """Restore the PVGroup state from the given document."""
+        try:
+            self._restoring = True
+            await restore_from_document(
+                group=self.group, doc=doc, timestamp_key=self.TIMESTAMP_KEY
+            )
+        finally:
+            self._restoring = False
+
+
 class ElasticHandler(DatabaseHandler):
     """
     ElasticSearch-backed PVGroup.
@@ -99,10 +184,8 @@ class ElasticHandler(DatabaseHandler):
     Assumptions:
     * Caproto PVGroup is the primary source of data; i.e., Data will not
       change in the database outside of caproto
-    * Field information will not be stored
+    * Field information is not currently stored
     """
-
-    TIMESTAMP_KEY = 'timestamp'
 
     def __init__(self,
                  group: PVGroup,
@@ -128,40 +211,7 @@ class ElasticHandler(DatabaseHandler):
         """Generate a new document ID."""
         return str(uuid.uuid4())
 
-    def _get_instances(self) -> Generator[Tuple[pvproperty, PvpropertyData], None, None]:
-        """Get all pvproperty instances to save."""
-        for dotted_attr, pvprop in self.group._pvs_.items():
-            channeldata = operator.attrgetter(dotted_attr)(self.group)
-            if '.' in dotted_attr:
-                # one level deep for now
-                ...
-            elif dotted_attr not in self.db_skip_attributes:
-                yield pvprop, channeldata
-
-    def get_timestamp_from_instances(self, instances) -> datetime.datetime:
-        """Determine the timestamp to use in the document."""
-        latest_posix_stamp = max(
-            channeldata.timestamp for _, channeldata in instances
-        )
-
-        return datetime.datetime.fromtimestamp(
-            latest_posix_stamp
-        )
-
-    def create_document(self) -> dict:
-        """Create a document based on the current IOC state."""
-        instances = tuple(self._get_instances())
-        if not instances:
-            return {}
-
-        document = {
-            pvprop.attr_name: channeldata.value
-            for pvprop, channeldata in instances
-        }
-        document[self.TIMESTAMP_KEY] = self.get_timestamp_from_instances(instances)
-        return document
-
-    async def get_last_document(self):
+    async def get_last_document(self) -> dict:
         """Get the latest document from the database."""
         result = await self.es.search(
             index=self.index,
@@ -198,36 +248,6 @@ class ElasticHandler(DatabaseHandler):
                     self.group.log.exception(
                         'Failed to restore the latest document (%s)', doc
                     )
-
-    async def restore_from_document(self, doc: dict):
-        """Restore the PVGroup state from the given document."""
-        timestamp = datetime.datetime.fromisoformat(doc[self.TIMESTAMP_KEY])
-        timestamp: float = timestamp.timestamp()
-
-        try:
-            self._restoring = True
-            for attr, value in doc.items():
-                if attr in {self.TIMESTAMP_KEY, }:
-                    continue
-
-                try:
-                    prop = getattr(self.group, attr)
-                except AttributeError:
-                    self.group.log.warning(
-                        'Attribute no longer valid: %s (value=%s)', attr, value
-                    )
-                    continue
-
-                try:
-                    await prop.write(value=value, timestamp=timestamp)
-                except Exception:
-                    self.group.log.exception(
-                        'Failed to restore %s value=%s', attr, value
-                    )
-                else:
-                    self.group.log.info('Restored %s = %s', attr, value)
-        finally:
-            self._restoring = False
 
     async def shutdown(self, group: PVGroup, async_lib: AsyncLibraryLayer):
         """Shutdown hook."""
