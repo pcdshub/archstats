@@ -108,15 +108,15 @@ async def restore_from_document(group: PVGroup, doc: dict, timestamp_key: str = 
     if isinstance(timestamp, str):
         timestamp = datetime.datetime.fromisoformat(timestamp).timestamp()
 
-    for attr, value in doc.items():
-        if attr == timestamp_key:
+    for pvname, value in doc.items():
+        if pvname == timestamp_key:
             continue
 
         try:
-            prop = getattr(group, attr)
-        except AttributeError:
+            prop = group.pvdb[pvname]
+        except KeyError:
             group.log.warning(
-                'Attribute no longer valid: %s (value=%s)', attr, value
+                'PV no longer valid: %s (value=%s)', pvname, value
             )
             continue
 
@@ -124,10 +124,10 @@ async def restore_from_document(group: PVGroup, doc: dict, timestamp_key: str = 
             await prop.write(value=value, timestamp=timestamp)
         except Exception:
             group.log.exception(
-                'Failed to restore %s value=%s', attr, value
+                'Failed to restore %s value=%s', pvname, value
             )
         else:
-            group.log.info('Restored %s = %s', attr, value)
+            group.log.info('Restored %s = %s', pvname, value)
 
 
 class DatabaseHandler(DatabaseHandlerInterface):
@@ -154,7 +154,7 @@ class DatabaseHandler(DatabaseHandlerInterface):
         """Create a document based on the current IOC state."""
         instances = tuple(self.get_instances())
         document = {
-            channeldata.pvspec.attr: channeldata.value
+            channeldata.pvname: channeldata.value
             for channeldata in instances
         }
 
@@ -234,24 +234,28 @@ class ElasticHandler(DatabaseHandler):
         # 400 - ignore if index already exists
         await self.es.indices.create(index=self.index, ignore=400)
 
-        if self.restore_on_startup:
-            try:
-                doc = await self.get_last_document()
-            except Exception:
-                self.group.log.exception('Failed to get the latest document')
-            else:
-                if doc is None:
-                    self.group.log.warning(
-                        'No document found to restore from.'
-                    )
-                    return
+        if not self.restore_on_startup:
+            return
 
-                try:
-                    await self.restore_from_document(doc)
-                except Exception:
-                    self.group.log.exception(
-                        'Failed to restore the latest document (%s)', doc
-                    )
+        try:
+            doc = await self.get_last_document()
+        except Exception:
+            self.group.log.exception('Failed to get the latest document')
+            return
+
+        if doc is None:
+            self.group.log.warning('No document found to restore from.')
+            return
+
+        try:
+            await self.restore_from_document(doc)
+        except Exception:
+            self.group.log.exception(
+                'Failed to restore the latest document (%s)', doc
+            )
+        else:
+            self.group.log.info('Restored state from last document')
+            self.group.log.debug('Restored state from last document: %s', doc)
 
     async def shutdown(self, group: PVGroup, async_lib: AsyncLibraryLayer):
         """Shutdown hook."""
