@@ -170,6 +170,11 @@ class JSONRequestGroup(PVGroup):
     Generic request -> JSON response to PVGroup helper.
     """
 
+    async def __ainit__(self):
+        """
+        A special async init handler.
+        """
+
     async def update(self):
         ...
 
@@ -216,11 +221,20 @@ class JSONRequestGroup(PVGroup):
 
 class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
     db_helper = SubGroup(DatabaseBackedHelper)
+    init_document: Optional[dict] = None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.init_document = None
+
         # Init here
         self.db_helper.handler = ManualElasticHandler(self)
+
+    async def __ainit__(self):
+        """
+        A special async init handler.
+        """
+        self.init_document = await self.db_helper.handler.get_last_document()
 
 
 class Archstats(PVGroup):
@@ -236,6 +250,7 @@ class Archstats(PVGroup):
 
         self.appliance_url = appliance_url
         self._dynamic_groups = []
+        self._document_count = {}
 
     async def __ainit__(self):
         """
@@ -270,9 +285,15 @@ class Archstats(PVGroup):
         group_cls = await DatabaseBackedJSONRequestGroup.from_request(
             class_name, request)
         group = group_cls(prefix=self.prefix)
+
         self._dynamic_groups.append(group)
+        self._document_count[group] = 0
         self._pvs_.update(group._pvs_)
         self.pvdb.update(group.pvdb)
+
+        if hasattr(group, '__ainit__'):
+            await group.__ainit__()
+
         return group_cls, group
 
     async def _update_group(self, group: DatabaseBackedJSONRequestGroup):
@@ -293,8 +314,10 @@ class Archstats(PVGroup):
             except Exception:
                 self.log.exception('Failed to update %s to %s', prop, item)
 
-        if changed:
+        first_document = self._document_count[group] == 0
+        if changed or (first_document and group.init_document is None):
             await group.db_helper.store()
+            self._document_count[group] += 1
 
     @updater.startup
     async def updater(self, instance: ChannelData, async_lib: AsyncLibraryLayer):
@@ -302,7 +325,12 @@ class Archstats(PVGroup):
         Startup hook for updater.
         """
         while True:
-            for group in self._dynamic_groups:
-                await self._update_group(group)
-                await async_lib.library.sleep(0.1)
+            try:
+                for group in self._dynamic_groups:
+                    await self._update_group(group)
+                    await async_lib.library.sleep(0.1)
+            except Exception:
+                self.log.exception('Update failed!')
+                await async_lib.library.sleep(10.0)
+
             await async_lib.library.sleep(self.update_rate)

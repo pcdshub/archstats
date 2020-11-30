@@ -189,7 +189,9 @@ class ElasticHandler(DatabaseHandler):
     group: PVGroup
     es: AsyncElasticsearch
     restore_on_startup: bool
+    _dated_index: str
     _restoring: bool
+    date_suffix_format = '%Y.%M.%d'
 
     def __init__(self,
                  group: PVGroup,
@@ -202,6 +204,7 @@ class ElasticHandler(DatabaseHandler):
 
         default_idx = f'{group.name}-{group.prefix}'.replace(':', '_').lower()
         self.index = index or default_idx
+        self._dated_index = None
 
         self.skip_attributes = skip_attributes or {}
         if es is None:
@@ -218,7 +221,7 @@ class ElasticHandler(DatabaseHandler):
     async def get_last_document(self) -> dict:
         """Get the latest document from the database."""
         result = await self.es.search(
-            index=self.index,
+            index=f'{self.index}-*',
             body={'sort': {self.TIMESTAMP_KEY: 'desc'}},
             size=1,
         )
@@ -229,11 +232,23 @@ class ElasticHandler(DatabaseHandler):
             except (KeyError, IndexError):
                 return None
 
+    async def get_dated_index_name(self) -> str:
+        """Index name with a date suffix ({index}-{date_suffix})."""
+        index = f'{self.index}-{self.date_suffix}'
+        if index != self._dated_index:
+            self._dated_index = index
+            # 400 - ignore if index already exists
+            await self.es.indices.create(index=index, ignore=400)
+
+        return index
+
+    @property
+    def date_suffix(self) -> str:
+        """Date suffix for use with the index name."""
+        return datetime.datetime.now().strftime(self.date_suffix_format)
+
     async def startup(self, group: PVGroup, async_lib: AsyncLibraryLayer):
         """Startup hook."""
-        # 400 - ignore if index already exists
-        await self.es.indices.create(index=self.index, ignore=400)
-
         if not self.restore_on_startup:
             return
 
@@ -277,8 +292,9 @@ class ElasticHandler(DatabaseHandler):
 
     async def store(self):
         """Store all data as a new document."""
+        index = await self.get_dated_index_name()
         await self.es.create(
-            index=self.index,
+            index=index,
             id=self.new_id(),
             body=self.create_document()
         )
