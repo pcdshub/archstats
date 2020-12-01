@@ -110,15 +110,15 @@ async def restore_from_document(group: PVGroup, doc: dict,
     if isinstance(timestamp, str):
         timestamp = datetime.datetime.fromisoformat(timestamp).timestamp()
 
-    for pvname, value in doc.items():
-        if pvname == timestamp_key:
+    for attr, value in doc.items():
+        if attr == timestamp_key:
             continue
 
         try:
-            prop = group.pvdb[pvname]
-        except KeyError:
+            prop = getattr(group, attr)
+        except AttributeError:
             group.log.warning(
-                'PV no longer valid: %s (value=%s)', pvname, value
+                'Attribute no longer valid: %s (value=%s)', attr, value
             )
             continue
 
@@ -126,10 +126,10 @@ async def restore_from_document(group: PVGroup, doc: dict,
             await prop.write(value=value, timestamp=timestamp)
         except Exception:
             group.log.exception(
-                'Failed to restore %s value=%s', pvname, value
+                'Failed to restore %s value=%s', attr, value
             )
         else:
-            group.log.info('Restored %s = %s', pvname, value)
+            group.log.info('Restored %s = %s', attr, value)
 
 
 class DatabaseHandler(DatabaseHandlerInterface):
@@ -156,7 +156,7 @@ class DatabaseHandler(DatabaseHandlerInterface):
         """Create a document based on the current IOC state."""
         instances = tuple(self.get_instances())
         document = {
-            channeldata.pvname: channeldata.value
+            channeldata.pvspec.attr: channeldata.value
             for channeldata in instances
         }
 

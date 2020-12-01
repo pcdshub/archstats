@@ -304,14 +304,13 @@ class Archstats(PVGroup):
     async def _update_group(self, group: DatabaseBackedJSONRequestGroup):
         changed = False
         for item in await group.request.make():
-            pvname = self.prefix + item['name']
-
             try:
-                prop = group.pvdb[pvname]
+                attr = group.key_to_attr_map[item['name']]
             except KeyError:
                 self.log.warning('Saw new entry: %s', item)
                 continue
 
+            prop = getattr(group, attr)
             try:
                 if prop.value != item['value']:
                     await prop.write(value=item['value'])  # , timestamp=timestamp)
