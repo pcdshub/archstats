@@ -255,7 +255,7 @@ class Archstats(PVGroup):
     """
 
     updater = pvproperty(value=0, name='__UPDATER__', read_only=True)
-    update_rate = 5
+    update_rate = 60
 
     def __init__(self, *args, appliance_url,
                  database_url='http://localhost:9200',
