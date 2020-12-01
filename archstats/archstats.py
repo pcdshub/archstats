@@ -223,12 +223,12 @@ class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
     db_helper = SubGroup(DatabaseBackedHelper)
     init_document: Optional[dict] = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, index: Optional[str] = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_document = None
 
         # Init here
-        self.db_helper.handler = ManualElasticHandler(self)
+        self.db_helper.handler = ManualElasticHandler(self, index=index)
 
     async def __ainit__(self):
         """
@@ -243,7 +243,7 @@ class Archstats(PVGroup):
     """
 
     updater = pvproperty(value=0, name='__UPDATER__', read_only=True)
-    update_rate = 30
+    update_rate = 5
 
     def __init__(self, *args, appliance_url, **kwargs):
         super().__init__(*args, **kwargs)
@@ -261,8 +261,11 @@ class Archstats(PVGroup):
             transformer=instance_metrics_to_pvproperties,
 
         )
-        await self._add_dynamic_group('ApplianceMetricsGroup',
-                                      basic_metrics_req)
+        await self._add_dynamic_group(
+            'ApplianceMetricsGroup',
+            basic_metrics_req,
+            index='archiver_appliance_metrics',
+        )
 
         instances = [
             appliance_info['instance']
@@ -275,16 +278,18 @@ class Archstats(PVGroup):
                     url=f'{self.appliance_url}mgmt/bpl/getApplianceMetricsForAppliance',
                     transformer=partial(detailed_metrics_to_pvproperties, instance),
                     parameters=dict(appliance=instance),
-                )
+                ),
+                index=f'archiver_appliance_metrics_{instance.lower()}',
             )
 
     async def _add_dynamic_group(
             self,
             class_name: str,
-            request: Request) -> DatabaseBackedJSONRequestGroup:
+            request: Request,
+            index: Optional[str] = None) -> DatabaseBackedJSONRequestGroup:
         group_cls = await DatabaseBackedJSONRequestGroup.from_request(
             class_name, request)
-        group = group_cls(prefix=self.prefix)
+        group = group_cls(prefix=self.prefix, index=index)
 
         self._dynamic_groups.append(group)
         self._document_count[group] = 0

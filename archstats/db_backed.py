@@ -6,6 +6,7 @@ import operator
 import uuid
 from typing import Generator, Optional, Tuple
 
+import inflection
 from caproto.server import (AsyncLibraryLayer, PVGroup, PvpropertyData,
                             pvproperty)
 from elasticsearch import AsyncElasticsearch
@@ -99,10 +100,11 @@ def get_latest_timestamp(instances: Tuple[PvpropertyData, ...]) -> datetime.date
         channeldata.timestamp for channeldata in instances
     )
 
-    return datetime.datetime.fromtimestamp(latest_posix_stamp)
+    return datetime.datetime.fromtimestamp(latest_posix_stamp).astimezone()
 
 
-async def restore_from_document(group: PVGroup, doc: dict, timestamp_key: str = 'timestamp'):
+async def restore_from_document(group: PVGroup, doc: dict,
+                                timestamp_key: str = '@timestamp'):
     """Restore the PVGroup state from the given document."""
     timestamp = doc[timestamp_key]
     if isinstance(timestamp, str):
@@ -131,7 +133,7 @@ async def restore_from_document(group: PVGroup, doc: dict, timestamp_key: str = 
 
 
 class DatabaseHandler(DatabaseHandlerInterface):
-    TIMESTAMP_KEY: str = 'timestamp'
+    TIMESTAMP_KEY: str = '@timestamp'
 
     def get_instances(self) -> Generator[PvpropertyData, None, None]:
         """Get all pvproperty instances to save."""
@@ -191,7 +193,7 @@ class ElasticHandler(DatabaseHandler):
     restore_on_startup: bool
     _dated_index: str
     _restoring: bool
-    date_suffix_format = '%Y.%M.%d'
+    date_suffix_format = '%Y.%m.%d'
 
     def __init__(self,
                  group: PVGroup,
@@ -202,8 +204,12 @@ class ElasticHandler(DatabaseHandler):
                  ):
         self.group = group
 
-        default_idx = f'{group.name}-{group.prefix}'.replace(':', '_').lower()
+        default_idx = inflection.underscore(
+            f'{group.name}-{group.prefix}'.replace(':', '_')
+        ).lower()
+
         self.index = index or default_idx
+        self.group.log.info('%s using elastic index: %s', group, self.index)
         self._dated_index = None
 
         self.skip_attributes = skip_attributes or {}
