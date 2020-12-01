@@ -39,9 +39,11 @@ def key_to_pv(key: str) -> str:
     'AvgTimeSpentByGetetlstreamsInEtl0To1SPerRun'
     """
     # Pre-filter: &raquo -> to
-    key = key.replace("&raquo;", "_to_")
+    key = key.replace("&raquo;", " to ")
     # Pre-filter: / -> per
-    key = key.replace("/", "_per_")
+    key = key.replace("/", " per ")
+    # Pre-filter: ETL -> _ETL_
+    key = key.replace("ETL", " ETL ")
     # Pre-filter: .*rate -> Rate
     if key.endswith('rate'):
         key = key[:-4] + 'Rate'
