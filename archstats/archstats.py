@@ -39,9 +39,13 @@ def key_to_pv(key: str) -> str:
     'AvgTimeSpentByGetetlstreamsInEtl0To1SPerRun'
     """
     # Pre-filter: &raquo -> to
-    key = key.replace("&raquo;", " to ")
+    key = key.replace("&raquo;", "_to_")
     # Pre-filter: / -> per
-    key = key.replace("/", " per ")
+    key = key.replace("/", "_per_")
+    # Pre-filter: .*rate -> Rate
+    if key.endswith('rate'):
+        key = key[:-4] + 'Rate'
+
     # Parametrize it for consistency:
     parametrized = inflection.parameterize(key)
     return inflection.camelize(parametrized.replace("-", "_"))
@@ -112,12 +116,9 @@ def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List
     These detailed metrics are a list of dictionaries with the keys: value,
     name, and source.
     """
-    def to_instance_pv(key):
-        return instance + ':' + key_to_pv(key)
-
     return [
         dict(
-            name=to_instance_pv(item['name']),
+            name=key_to_pv(item['name']),
             **_metric_value_to_kwargs(item['name'], item["value"])
         )
         for item in json.loads(metrics_string)
@@ -200,7 +201,7 @@ class JSONRequestGroup(PVGroup):
         key_to_attr_map = clsdict['key_to_attr_map']
 
         for info in response:
-            attr = info.get('attr', inflection.underscore(info['name']))
+            attr = info.pop('attr', inflection.underscore(info['name']))
             attr = attr.replace(':', '_')
             if not attr.isidentifier():
                 old_attr = attr
@@ -261,12 +262,14 @@ class Archstats(PVGroup):
             transformer=instance_metrics_to_pvproperties,
 
         )
-        await self._add_dynamic_group(
-            'ApplianceMetricsGroup',
-            basic_metrics_req,
-            index='archiver_appliance_metrics',
-        )
 
+        # await self._add_dynamic_group(
+        #     'ApplianceMetricsGroup',
+        #     basic_metrics_req,
+        #     index='archiver_appliance_metrics',
+        # )
+
+        await basic_metrics_req.make()
         instances = [
             appliance_info['instance']
             for appliance_info in json.loads(basic_metrics_req.last_raw_result)
@@ -280,16 +283,19 @@ class Archstats(PVGroup):
                     parameters=dict(appliance=instance),
                 ),
                 index=f'archiver_appliance_metrics_{instance.lower()}',
+                prefix=f'{instance}:',
             )
 
     async def _add_dynamic_group(
             self,
             class_name: str,
             request: Request,
-            index: Optional[str] = None) -> DatabaseBackedJSONRequestGroup:
+            index: Optional[str] = None,
+            prefix: str = '',
+            ) -> DatabaseBackedJSONRequestGroup:
         group_cls = await DatabaseBackedJSONRequestGroup.from_request(
             class_name, request)
-        group = group_cls(prefix=self.prefix, index=index)
+        group = group_cls(prefix=f'{self.prefix}{prefix}', index=index, parent=self)
 
         self._dynamic_groups.append(group)
         self._document_count[group] = 0
