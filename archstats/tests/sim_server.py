@@ -1,3 +1,4 @@
+import json
 import logging
 import pathlib
 from functools import partial
@@ -9,6 +10,15 @@ logger = logging.getLogger(__name__)
 
 MODULE_PATH = pathlib.Path(__file__).parent
 JSON_PATH = MODULE_PATH / 'json'
+NUM_REQUESTS = 0
+
+
+def increment_request_count():
+    """Return and increment the number of requests."""
+    global NUM_REQUESTS
+    count = NUM_REQUESTS
+    NUM_REQUESTS += 1
+    return count
 
 
 async def handle_data(request: aiohttp.web.BaseRequest):
@@ -21,7 +31,12 @@ async def handle_data(request: aiohttp.web.BaseRequest):
 async def handle_appliance_data(json_filename, request: aiohttp.web.BaseRequest):
     json_filename = JSON_PATH / json_filename.format(appliance=request.query['appliance'])
     with open(f'{json_filename}.json', 'rt') as f:
-        return web.Response(text=f.read())
+        doc = json.load(f)
+
+    # Increase the PV count on each request to make this a bit more
+    # interesting:
+    doc[1]['value'] = str(int(doc[1]['value']) + increment_request_count())
+    return web.Response(text=json.dumps(doc))
 
 
 app = web.Application()
@@ -38,6 +53,7 @@ app.add_routes(
 
 
 def main():
+    logging.basicConfig()
     web.run_app(app)
 
 
