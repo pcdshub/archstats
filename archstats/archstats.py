@@ -10,7 +10,8 @@ import inflection
 from caproto import ChannelData
 from caproto.server import AsyncLibraryLayer, PVGroup, SubGroup, pvproperty
 
-from .db_backed import DatabaseBackedHelper, ManualElasticHandler
+from .db_backed import (DatabaseBackedHelper, DatabaseHandler,
+                        ManualElasticHandler)
 
 _session = None
 logger = logging.getLogger(__name__)
@@ -223,15 +224,23 @@ class JSONRequestGroup(PVGroup):
 
 
 class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
+    handlers = {
+        'elastic': ManualElasticHandler,
+    }
     db_helper = SubGroup(DatabaseBackedHelper)
     init_document: Optional[dict] = None
 
-    def __init__(self, *args, index: Optional[str] = None, **kwargs):
+    def __init__(self, *args,
+                 index: Optional[str] = None,
+                 backend: str,
+                 url: str,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self.init_document = None
 
         # Init here
-        self.db_helper.handler = ManualElasticHandler(self, index=index)
+        handler_class: Type[DatabaseHandler] = self.handlers[backend]
+        self.db_helper.handler = handler_class(self, url, index=index)
 
     async def __ainit__(self):
         """
@@ -248,10 +257,15 @@ class Archstats(PVGroup):
     updater = pvproperty(value=0, name='__UPDATER__', read_only=True)
     update_rate = 5
 
-    def __init__(self, *args, appliance_url, **kwargs):
+    def __init__(self, *args, appliance_url,
+                 database_url='http://localhost:9200',
+                 database_backend=None,
+                 **kwargs):
         super().__init__(*args, **kwargs)
 
         self.appliance_url = appliance_url
+        self.database_url = database_url
+        self.database_backend = database_backend
         self._dynamic_groups = []
         self._document_count = {}
 
@@ -297,7 +311,10 @@ class Archstats(PVGroup):
             ) -> DatabaseBackedJSONRequestGroup:
         group_cls = await DatabaseBackedJSONRequestGroup.from_request(
             class_name, request)
-        group = group_cls(prefix=f'{self.prefix}{prefix}', index=index, parent=self)
+        group = group_cls(prefix=f'{self.prefix}{prefix}',
+                          backend=self.database_backend,
+                          url=self.database_url,
+                          index=index, parent=self)
 
         self._dynamic_groups.append(group)
         self._document_count[group] = 0

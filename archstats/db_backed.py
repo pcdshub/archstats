@@ -197,6 +197,7 @@ class ElasticHandler(DatabaseHandler):
 
     def __init__(self,
                  group: PVGroup,
+                 url: str,
                  skip_attributes: Optional[set] = None,
                  es: AsyncElasticsearch = None,
                  index: Optional[str] = None,
@@ -214,7 +215,7 @@ class ElasticHandler(DatabaseHandler):
 
         self.skip_attributes = skip_attributes or {}
         if es is None:
-            es = AsyncElasticsearch(['localhost:9200'])
+            es = AsyncElasticsearch([url])
         self.es = es
         self.restore_on_startup = restore_on_startup
         self._restoring = False
