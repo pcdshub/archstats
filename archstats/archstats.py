@@ -190,10 +190,21 @@ class JSONRequestGroup(PVGroup):
             *,
             session: Optional[aiohttp.ClientSession] = None,
             ) -> Type['JSONRequestGroup']:
-        # if request.last_result is not None:
-        #     # Use the last request, if cached
-        #     response = request.last_result
-        # else:
+        """
+        Make a request andn generate a new PVGroup based on the response.
+
+        Parameters
+        ----------
+        name : str
+            The new class name.
+
+        request : Request
+            The request object used to make the query and generate the PV
+            database.
+
+        session : aiohttp.ClientSession, optional
+            The aiohttp client session (defaults to the global session).
+        """
         response = await request.make(session=session)
 
         clsdict = dict(
@@ -224,11 +235,16 @@ class JSONRequestGroup(PVGroup):
 
 
 class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
+    """
+    Extends the JSON request-backed PVGroup by storing the gathered information
+    in an external database instance.
+    """
     handlers = {
         'elastic': ManualElasticHandler,
     }
-    db_helper = SubGroup(DatabaseBackedHelper)
     init_document: Optional[dict] = None
+
+    db_helper = SubGroup(DatabaseBackedHelper)
 
     def __init__(self, *args,
                  index: Optional[str] = None,
@@ -246,6 +262,7 @@ class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
         """
         A special async init handler.
         """
+        await super().__ainit__()
         self.init_document = await self.db_helper.handler.get_last_document()
 
 
@@ -309,6 +326,25 @@ class Archstats(PVGroup):
             index: Optional[str] = None,
             prefix: str = '',
             ) -> DatabaseBackedJSONRequestGroup:
+        """
+        Add a dynamic PVGroup to be periodically updated.
+
+        Parameters
+        ----------
+        class_name : str
+            The class name for the new group.
+
+        request : Request
+            The request object used to make the query and generate the PV
+            database.
+
+        index : str, optional
+            The index name to use.
+
+        prefix : str, optional
+            The prefix for the group, exclusive of ``self.prefix``.
+        """
+
         group_cls = await DatabaseBackedJSONRequestGroup.from_request(
             class_name, request)
         group = group_cls(prefix=f'{self.prefix}{prefix}',
@@ -327,6 +363,14 @@ class Archstats(PVGroup):
         return group_cls, group
 
     async def _update_group(self, group: DatabaseBackedJSONRequestGroup):
+        """
+        Update the dynamic group `group`.
+
+        Parameters
+        ----------
+        group : DatabaseBackedJSONRequestGroup
+            The group to update.
+        """
         changed = False
         for item in await group.request.make():
             try:
@@ -351,7 +395,7 @@ class Archstats(PVGroup):
     @updater.startup
     async def updater(self, instance: ChannelData, async_lib: AsyncLibraryLayer):
         """
-        Startup hook for updater.
+        Startup hook: periodically update the dynamic groups contained here.
         """
         while True:
             try:
