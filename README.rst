@@ -9,18 +9,23 @@ archstats
         :target: https://pypi.python.org/pypi/archstats
 
 
-EPICS Archiver Appliance statistics IOC
+EPICS Archiver Appliance statistics IOC and Grafana dashboards
+
+.. image:: https://raw.githubusercontent.com/pcdshub/archstats/assets/images/grafana_1.png
+   :target: https://github.com/pcdshub/archstats/blob/master/grafana/example.json
 
 Documentation
 -------------
 
-Sphinx-generated documentation for this project can be found here:
 https://pcdshub.github.io/archstats/
 
 Requirements
 ------------
 
-Describe the project requirements (i.e. Python version, packages and how to install them)
+* Python 3.7+
+* aiohttp
+* elasticsearch
+* inflection
 
 Installation
 ------------
