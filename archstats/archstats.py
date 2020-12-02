@@ -1,28 +1,17 @@
 import ast
-import dataclasses
 import json
 import logging
 from functools import partial
-from typing import Any, List, Optional, Type
+from typing import Any, List, Optional
 
-import aiohttp
 import inflection
 from caproto import ChannelData
-from caproto.server import AsyncLibraryLayer, PVGroup, SubGroup, pvproperty
+from caproto.server import AsyncLibraryLayer, PVGroup, pvproperty
 
-from .db_backed import (DatabaseBackedHelper, DatabaseHandler,
-                        ManualElasticHandler)
+from .db_backed import DatabaseBackedJSONRequestGroup, Request
 
 _session = None
 logger = logging.getLogger(__name__)
-
-
-def get_global_session() -> aiohttp.ClientSession:
-    """Get the shared aiohttp ClientSession."""
-    global _session
-    if _session is None:
-        _session = aiohttp.ClientSession()
-    return _session
 
 
 def key_to_pv(key: str) -> str:
@@ -128,142 +117,69 @@ def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List
     ]
 
 
-@dataclasses.dataclass
-class Request:
-    """Dataclass representing an http request."""
-    url: str
-    parameters: Optional[dict] = None
-    method: str = 'get'
-    transformer: Optional[callable] = json.loads
-    last_result: Optional[dict] = None
-    last_raw_result: Optional[str] = None
-
-    async def make(self, session: Optional[aiohttp.ClientSession] = None) -> dict:
-        """
-        Make a request and convert the JSON response to a dictionary.
-
-        Parameters
-        ----------
-        session : aiohttp.ClientSession, optional
-            The client session - defaults to using the globally shared one.
-        """
-
-        if session is None:
-            session = get_global_session()
-
-        method = {
-            'get': session.get,
-            'put': session.put,
-        }[self.method]
-
-        async with method(self.url, params=self.parameters) as response:
-            data = await response.text()
-            assert response.status == 200
-
-        self.last_raw_result = data
-
-        if self.transformer is not None:
-            data = self.transformer(data)
-
-        self.last_result = data
-        return data
-
-
-class JSONRequestGroup(PVGroup):
+def storage_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
     """
-    Generic request -> JSON response to PVGroup helper.
+    Make a key-pvproperty kwarg dictionary from a JSON string.
+
+    The storage metrics are of the form (note the surrounding list):
+        [{"storage1_key1": "value1", "storage1_key2": "value2"},
+         {"storage2_key1": "value1", "storage2_key2": "value2"},
+         ]
+
+    The short, medium, and long-term storage are marked by the "name" key as
+    STS, MTS, and LTS.
     """
+    def to_storage_pv(storage_dict, key):
+        return storage_dict['name'] + ':' + inflection.camelize(key)
 
-    async def __ainit__(self):
-        """
-        A special async init handler.
-        """
-
-    async def update(self):
-        ...
-
-    @classmethod
-    async def from_request(
-            cls,
-            name: str,
-            request: Request,
-            *,
-            session: Optional[aiohttp.ClientSession] = None,
-            ) -> Type['JSONRequestGroup']:
-        """
-        Make a request andn generate a new PVGroup based on the response.
-
-        Parameters
-        ----------
-        name : str
-            The new class name.
-
-        request : Request
-            The request object used to make the query and generate the PV
-            database.
-
-        session : aiohttp.ClientSession, optional
-            The aiohttp client session (defaults to the global session).
-        """
-        response = await request.make(session=session)
-
-        clsdict = dict(
-            request=request,
-            key_to_attr_map={},
+    return [
+        dict(
+            name=to_storage_pv(storage_dict, key),
+            **_metric_value_to_kwargs(key, value)
         )
-
-        key_to_attr_map = clsdict['key_to_attr_map']
-
-        for info in response:
-            attr = info.pop('attr', inflection.underscore(info['name']))
-            attr = attr.replace(':', '_')
-            if not attr.isidentifier():
-                old_attr = attr
-                attr = f'json_{abs(hash(attr))}'
-                logger.warning('Invalid identifier: %s -> %s', old_attr, attr)
-
-            if attr in clsdict:
-                logger.warning('Attribute shadowed: %s', attr)
-
-            kwargs = info.get('kwargs', {})
-            key_to_attr_map[info['name']] = attr
-            clsdict[attr] = pvproperty(
-                name=info['name'], value=info['value'], **kwargs
-            )
-
-        return type(name, (cls, ), clsdict)
+        for storage_dict in json.loads(metrics_string)
+        for key, value in storage_dict.items()
+        if key != 'name'
+    ]
 
 
-class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
+def process_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
     """
-    Extends the JSON request-backed PVGroup by storing the gathered information
-    in an external database instance.
+    Make a key-pvproperty kwarg dictionary from a JSON string.
+
+    The process metrics are of the form (note the surrounding list):
+        [{"data": [[ts, value], ...], "label": "value2"},
+         ...
+         ]
+
+    .. note::
+
+        This may be slightly inaccurate due to phase offsets/process metrics
+        updating out-of-sync with our polling loop. At worst, we're
+        consistently ~1 minute off.
     """
-    handlers = {
-        'elastic': ManualElasticHandler,
-    }
-    init_document: Optional[dict] = None
 
-    db_helper = SubGroup(DatabaseBackedHelper)
+    def get_value(data):
+        if not data:
+            return 0
 
-    def __init__(self, *args,
-                 index: Optional[str] = None,
-                 backend: str,
-                 url: str,
-                 **kwargs):
-        super().__init__(*args, **kwargs)
-        self.init_document = None
+        try:
+            # value from the last (timestamp, value) pair
+            return data[-1][1]
+        except Exception:
+            return 0.0
 
-        # Init here
-        handler_class: Type[DatabaseHandler] = self.handlers[backend]
-        self.db_helper.handler = handler_class(self, url, index=index)
+    def to_process_info(label='unknown', data=None, **kwargs):
+        return {
+            "name": inflection.camelize(label.split(' ', 1)[0]),
+            "value": get_value(data),
+        }
 
-    async def __ainit__(self):
-        """
-        A special async init handler.
-        """
-        await super().__ainit__()
-        self.init_document = await self.db_helper.handler.get_last_document()
+    return [
+        to_process_info(**metrics_dict)
+        for metrics_dict in json.loads(metrics_string)
+
+    ]
 
 
 class Archstats(PVGroup):
@@ -305,16 +221,29 @@ class Archstats(PVGroup):
         await basic_metrics_req.make()
         instances = [
             appliance_info['instance']
-            for appliance_info in json.loads(basic_metrics_req.last_raw_result)
+            for appliance_info in json.loads(basic_metrics_req.last_response.raw)
         ]
-        for instance in instances:
+
+        for idx, instance in enumerate(instances):
             await self._add_dynamic_group(
                 f'DetailedMetricsGroup{instance}',
-                Request(
-                    url=f'{self.appliance_url}mgmt/bpl/getApplianceMetricsForAppliance',
-                    transformer=partial(detailed_metrics_to_pvproperties, instance),
-                    parameters=dict(appliance=instance),
-                ),
+                [
+                    Request(
+                        url=f'{self.appliance_url}mgmt/bpl/getApplianceMetricsForAppliance',
+                        transformer=partial(detailed_metrics_to_pvproperties, instance),
+                        parameters=dict(appliance=instance)
+                    ),
+                    Request(
+                        url=f'{self.appliance_url}mgmt/bpl/getStorageMetricsForAppliance',
+                        transformer=storage_metrics_to_pvproperties,
+                        parameters=dict(appliance=instance)
+                    ),
+                    Request(
+                        url=f'{self.appliance_url}mgmt/bpl/getProcessMetricsDataForAppliance',
+                        transformer=process_metrics_to_pvproperties,
+                        parameters=dict(appliance=instance)
+                    ),
+                ],
                 index=f'archiver_appliance_metrics_{instance.lower()}',
                 prefix=f'{instance}:',
             )
@@ -372,20 +301,21 @@ class Archstats(PVGroup):
             The group to update.
         """
         changed = False
-        for item in await group.request.make():
-            try:
-                attr = group.key_to_attr_map[item['name']]
-            except KeyError:
-                self.log.warning('Saw new entry: %s', item)
-                continue
+        for request in group.requests:
+            for item in await request.make():
+                try:
+                    attr = group.key_to_attr_map[item['name']]
+                except KeyError:
+                    self.log.warning('Saw new entry: %s', item)
+                    continue
 
-            prop = getattr(group, attr)
-            try:
-                if prop.value != item['value']:
-                    await prop.write(value=item['value'])  # , timestamp=timestamp)
-                    changed = True
-            except Exception:
-                self.log.exception('Failed to update %s to %s', prop, item)
+                prop = getattr(group, attr)
+                try:
+                    if prop.value != item['value']:
+                        await prop.write(value=item['value'])  # , timestamp=timestamp)
+                        changed = True
+                except Exception:
+                    self.log.exception('Failed to update %s to %s', prop, item)
 
         first_document = self._document_count[group] == 0
         if changed or (first_document and group.init_document is None):
