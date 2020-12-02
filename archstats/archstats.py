@@ -10,7 +10,6 @@ from caproto.server import AsyncLibraryLayer, PVGroup, pvproperty
 
 from .db_backed import DatabaseBackedJSONRequestGroup, Request
 
-_session = None
 logger = logging.getLogger(__name__)
 
 
@@ -56,7 +55,11 @@ def archiver_literal_eval(value: str) -> Any:
     return evaluated
 
 
-def _metric_value_to_kwargs(key: str, value: Any) -> dict:
+def _value_to_pvproperty_kwargs(key: str, value: Any) -> dict:
+    """
+    Take a value (an integer, float, bool, or string) and return the keyword
+    arguments to make a new `pvproperty`.
+    """
     value = archiver_literal_eval(value)
 
     kwargs = {
@@ -94,7 +97,7 @@ def instance_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
     return [
         dict(
             name=to_instance_pv(instance_dict, key),
-            **_metric_value_to_kwargs(key, value)
+            **_value_to_pvproperty_kwargs(key, value)
         )
         for instance_dict in json.loads(metrics_string)
         for key, value in instance_dict.items()
@@ -108,12 +111,36 @@ def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List
     These detailed metrics are a list of dictionaries with the keys: value,
     name, and source.
     """
+
+    def load_and_filter(metrics_string):
+        for item in json.loads(metrics_string):
+            name = item['name']
+            if name.startswith('Estimated bytes transferred in ETL'):
+                # A special case - the units on these can change dynamically
+                # underneath us.  Adjust to keep it always in MB.
+                value = archiver_literal_eval(item['value'])
+
+                unitless_name, units = item['name'].rsplit('(', 1)
+                units = units.rstrip(')')
+                if value:
+                    if units == 'KB':
+                        value /= 1024.0  # KB -> MB
+                    elif units == 'MB':
+                        ...
+                    elif units == 'GB':
+                        value *= 1024.0  # GB -> MB
+
+                item['name'] = f'{unitless_name}(MB)'
+                item['value'] = value
+
+            yield item
+
     return [
         dict(
             name=key_to_pv(item['name']),
-            **_metric_value_to_kwargs(item['name'], item["value"])
+            **_value_to_pvproperty_kwargs(item['name'], item['value'])
         )
-        for item in json.loads(metrics_string)
+        for item in load_and_filter(metrics_string)
     ]
 
 
@@ -135,7 +162,7 @@ def storage_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
     return [
         dict(
             name=to_storage_pv(storage_dict, key),
-            **_metric_value_to_kwargs(key, value)
+            **_value_to_pvproperty_kwargs(key, value)
         )
         for storage_dict in json.loads(metrics_string)
         for key, value in storage_dict.items()
