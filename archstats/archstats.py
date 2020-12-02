@@ -1,6 +1,7 @@
 import ast
 import json
 import logging
+import re
 from functools import partial
 from typing import Any, List, Optional
 
@@ -11,6 +12,12 @@ from caproto.server import AsyncLibraryLayer, PVGroup, pvproperty
 from .db_backed import DatabaseBackedJSONRequestGroup, Request
 
 logger = logging.getLogger(__name__)
+
+
+# Numbers are stored as strings with commas for readability. Match them with
+# the following - nothing overly complicated is necessary, as literal_eval
+# will do the heavy lifting down the line:
+RE_NUMBER_WITH_COMMA = re.compile(r'^[0-9,.]+$')
 
 
 def key_to_pv(key: str) -> str:
@@ -44,15 +51,13 @@ def key_to_pv(key: str) -> str:
 
 def archiver_literal_eval(value: str) -> Any:
     """literaleval-like function for archiver metrics values."""
+    if RE_NUMBER_WITH_COMMA.match(value):
+        value = value.replace(',', '')
+
     try:
-        evaluated = ast.literal_eval(value)
+        return ast.literal_eval(value)
     except Exception:
         return value
-
-    # Numbers such as: 160,732 become (160, 732)
-    if isinstance(evaluated, tuple):
-        return archiver_literal_eval(value.replace(',', ''))
-    return evaluated
 
 
 def _value_to_pvproperty_kwargs(key: str, value: Any) -> dict:
@@ -131,7 +136,7 @@ def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List
                         value *= 1024.0  # GB -> MB
 
                 item['name'] = f'{unitless_name}(MB)'
-                item['value'] = value
+                item['value'] = str(value)
 
             yield item
 
