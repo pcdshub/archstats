@@ -1,5 +1,6 @@
 import ast
 import dataclasses
+import datetime
 import json
 import logging
 from functools import partial
@@ -128,6 +129,39 @@ def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List
     ]
 
 
+def storage_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
+    """
+    Make a key-pvproperty kwarg dictionary from a metrics JSON string.
+
+    The instance metrics are of the form (note the surrounding list):
+        [{"storage1_key1": "value1", "storage1_key2": "value2"},
+         {"storage2_key1": "value1", "storage2_key2": "value2"},
+         ]
+
+    The short, medium, and long-term storage are marked by the "name" key as
+    STS, MTS, and LTS.
+    """
+    def to_storage_pv(storage_dict, key):
+        return storage_dict['name'] + ':' + inflection.camelize(key)
+
+    return [
+        dict(
+            name=to_storage_pv(storage_dict, key),
+            **_metric_value_to_kwargs(key, value)
+        )
+        for storage_dict in json.loads(metrics_string)
+        for key, value in storage_dict.items()
+        if key != 'name'
+    ]
+
+
+@dataclasses.dataclass
+class Response:
+    timestamp: datetime.datetime
+    raw: str
+    data: dict
+
+
 @dataclasses.dataclass
 class Request:
     """Dataclass representing an http request."""
@@ -135,8 +169,9 @@ class Request:
     parameters: Optional[dict] = None
     method: str = 'get'
     transformer: Optional[callable] = json.loads
-    last_result: Optional[dict] = None
-    last_raw_result: Optional[str] = None
+
+    last_response: Optional[Response] = None
+    cache_period: Optional[float] = 2.0
 
     async def make(self, session: Optional[aiohttp.ClientSession] = None) -> dict:
         """
@@ -157,15 +192,19 @@ class Request:
         }[self.method]
 
         async with method(self.url, params=self.parameters) as response:
-            data = await response.text()
+            raw_response = await response.text()
             assert response.status == 200
 
-        self.last_raw_result = data
+        if self.transformer is None:
+            data = raw_response
+        else:
+            data = self.transformer(raw_response)
 
-        if self.transformer is not None:
-            data = self.transformer(data)
-
-        self.last_result = data
+        self.last_response = Response(
+            timestamp=datetime.datetime.now(),
+            raw=raw_response,
+            data=data,
+        )
         return data
 
 
@@ -325,16 +364,24 @@ class Archstats(PVGroup):
         await basic_metrics_req.make()
         instances = [
             appliance_info['instance']
-            for appliance_info in json.loads(basic_metrics_req.last_raw_result)
+            for appliance_info in json.loads(basic_metrics_req.last_response.raw)
         ]
-        for instance in instances:
+
+        for idx, instance in enumerate(instances):
             await self._add_dynamic_group(
                 f'DetailedMetricsGroup{instance}',
-                Request(
-                    url=f'{self.appliance_url}mgmt/bpl/getApplianceMetricsForAppliance',
-                    transformer=partial(detailed_metrics_to_pvproperties, instance),
-                    parameters=dict(appliance=instance),
-                ),
+                [
+                    Request(
+                        url=f'{self.appliance_url}mgmt/bpl/getApplianceMetricsForAppliance',
+                        transformer=partial(detailed_metrics_to_pvproperties, instance),
+                        parameters=dict(appliance=instance)
+                    ),
+                    Request(
+                        url=f'{self.appliance_url}mgmt/bpl/getStorageMetricsForAppliance',
+                        transformer=storage_metrics_to_pvproperties,
+                        parameters=dict(appliance=instance)
+                    ),
+                ],
                 index=f'archiver_appliance_metrics_{instance.lower()}',
                 prefix=f'{instance}:',
             )
