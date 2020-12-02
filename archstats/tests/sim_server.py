@@ -28,14 +28,16 @@ async def handle_data(request: aiohttp.web.BaseRequest):
         return web.Response(text=f.read())
 
 
-async def handle_appliance_data(json_filename, request: aiohttp.web.BaseRequest):
+async def handle_appliance_data(json_filename, request: aiohttp.web.BaseRequest,
+                                increment: bool = False):
     json_filename = JSON_PATH / json_filename.format(appliance=request.query['appliance'])
     with open(f'{json_filename}.json', 'rt') as f:
         doc = json.load(f)
 
-    # Increase the PV count on each request to make this a bit more
-    # interesting:
-    doc[1]['value'] = str(int(doc[1]['value']) + increment_request_count())
+    if increment:
+        # Increase the PV count on each request to make this a bit more
+        # interesting:
+        doc[1]['value'] = str(int(doc[1]['value']) + increment_request_count())
     return web.Response(text=json.dumps(doc))
 
 
@@ -47,7 +49,19 @@ app.add_routes(
         web.get('/mgmt/bpl/getInstanceMetrics', handle_data),
         web.get('/mgmt/bpl/getApplianceMetricsForAppliance',
                 partial(handle_appliance_data,
-                        'getApplianceMetricsForAppliance-{appliance}')),
+                        'getApplianceMetricsForAppliance-{appliance}',
+                        increment=True)
+                ),
+        web.get('/mgmt/bpl/getProcessMetricsDataForAppliance',
+                partial(handle_appliance_data,
+                        'getProcessMetricsDataForAppliance-{appliance}',
+                        increment=False)
+                ),
+        web.get('/mgmt/bpl/getStorageMetricsForAppliance',
+                partial(handle_appliance_data,
+                        'getStorageMetricsForAppliance-{appliance}',
+                        increment=False)
+                ),
     ]
 )
 

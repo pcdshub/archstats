@@ -8,7 +8,11 @@ echo "Caching information for testing from ${ARCH_HOST}..."
 # curl ${ARCH_HOST}/mgmt/bpl/getStorageMetrics  > archstats/tests/json/getStorageMetrics.json
 # curl ${ARCH_HOST}/mgmt/bpl/getInstanceMetrics  > archstats/tests/json/getInstanceMetrics.json
 
-# for appliance in ${APPLIANCES}; do
-#     echo "Appliance ${appliance}"
+ for appliance in ${APPLIANCES}; do
+    echo "Appliance ${appliance}"
 #     curl "${ARCH_HOST}/mgmt/bpl/getApplianceMetricsForAppliance?appliance=${appliance}"  > archstats/tests/json/getApplianceMetricsForAppliance-${appliance}.json
-# done
+#     curl "${ARCH_HOST}/mgmt/bpl/getProcessMetricsDataForAppliance?appliance=${appliance}"  > archstats/tests/json/getProcessMetricsDataForAppliance-${appliance}.json
+    # curl "${ARCH_HOST}/mgmt/bpl/getStorageMetricsForAppliance?appliance=${appliance}"  > archstats/tests/json/getStorageMetricsForAppliance-${appliance}.json
+    # DO NOT include these -- too large:
+    # curl "${ARCH_HOST}/mgmt/bpl/getCreationReportForAppliance?appliance=${appliance}"  > archstats/tests/json/getCreationReportForAppliance-${appliance}.json
+ done
