@@ -5,6 +5,8 @@ Welcome to archstats's documentation!
     :maxdepth: 2
     :caption: Contents:
 
+    configuration
+    grafana
     api
 
 .. toctree::
