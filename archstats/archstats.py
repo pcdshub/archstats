@@ -3,7 +3,7 @@ import dataclasses
 import json
 import logging
 from functools import partial
-from typing import Any, List, Optional, Type
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Type
 
 import aiohttp
 import inflection
@@ -198,40 +198,60 @@ class JSONRequestGroup(PVGroup):
         name : str
             The new class name.
 
-        request : Request
-            The request object used to make the query and generate the PV
-            database.
+        request : Request (or sequence of Request)
+            The request object (or objects) used to make the query and generate
+            the PV database.
 
         session : aiohttp.ClientSession, optional
             The aiohttp client session (defaults to the global session).
         """
-        response = await request.make(session=session)
+        if isinstance(request, Sequence):
+            requests = list(request)
+        else:
+            requests = [request]
 
         clsdict = dict(
-            request=request,
+            requests=requests,
             key_to_attr_map={},
         )
 
-        key_to_attr_map = clsdict['key_to_attr_map']
+        key_to_attr_map: Dict[str, str] = clsdict['key_to_attr_map']
 
-        for info in response:
-            attr = info.pop('attr', inflection.underscore(info['name']))
-            attr = attr.replace(':', '_')
-            if not attr.isidentifier():
-                old_attr = attr
-                attr = f'json_{abs(hash(attr))}'
-                logger.warning('Invalid identifier: %s -> %s', old_attr, attr)
-
-            if attr in clsdict:
-                logger.warning('Attribute shadowed: %s', attr)
-
-            kwargs = info.get('kwargs', {})
-            key_to_attr_map[info['name']] = attr
-            clsdict[attr] = pvproperty(
-                name=info['name'], value=info['value'], **kwargs
-            )
+        for request in requests:
+            response = await request.make(session=session)
+            for item in response:
+                attr, prop = cls.create_pvproperty(item)
+                if attr in clsdict:
+                    logger.warning('Attribute shadowed: %s', attr)
+                clsdict[attr] = prop
+                key_to_attr_map[item['name']] = attr
 
         return type(name, (cls, ), clsdict)
+
+    @classmethod
+    def create_pvproperty(cls, item: Dict[str, Any]) -> Tuple[str, pvproperty]:
+        """
+        Create a pvproperty dynamically from a portion fo the JSON response.
+
+        Parameters
+        ----------
+        item : dict
+            Single dictionary of information from the response. Expected to
+            contain the keys "name" and "value" at minimum. May also contain
+            a pre-defined "attr".
+        """
+        # Shallow-copy the item and remove `attr`
+        item = dict(item)
+        attr = item.pop('attr', inflection.underscore(item['name']))
+        attr = attr.replace(':', '_')
+        if not attr.isidentifier():
+            old_attr = attr
+            attr = f'json_{abs(hash(attr))}'
+            logger.warning('Invalid identifier: %s -> %s', old_attr, attr)
+
+        kwargs = item.get('kwargs', {})
+        return attr, pvproperty(name=item['name'], value=item['value'],
+                                **kwargs)
 
 
 class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
@@ -372,20 +392,21 @@ class Archstats(PVGroup):
             The group to update.
         """
         changed = False
-        for item in await group.request.make():
-            try:
-                attr = group.key_to_attr_map[item['name']]
-            except KeyError:
-                self.log.warning('Saw new entry: %s', item)
-                continue
+        for request in group.requests:
+            for item in await request.make():
+                try:
+                    attr = group.key_to_attr_map[item['name']]
+                except KeyError:
+                    self.log.warning('Saw new entry: %s', item)
+                    continue
 
-            prop = getattr(group, attr)
-            try:
-                if prop.value != item['value']:
-                    await prop.write(value=item['value'])  # , timestamp=timestamp)
-                    changed = True
-            except Exception:
-                self.log.exception('Failed to update %s to %s', prop, item)
+                prop = getattr(group, attr)
+                try:
+                    if prop.value != item['value']:
+                        await prop.write(value=item['value'])  # , timestamp=timestamp)
+                        changed = True
+                except Exception:
+                    self.log.exception('Failed to update %s to %s', prop, item)
 
         first_document = self._document_count[group] == 0
         if changed or (first_document and group.init_document is None):
