@@ -131,9 +131,9 @@ def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List
 
 def storage_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
     """
-    Make a key-pvproperty kwarg dictionary from a metrics JSON string.
+    Make a key-pvproperty kwarg dictionary from a JSON string.
 
-    The instance metrics are of the form (note the surrounding list):
+    The storage metrics are of the form (note the surrounding list):
         [{"storage1_key1": "value1", "storage1_key2": "value2"},
          {"storage2_key1": "value1", "storage2_key2": "value2"},
          ]
@@ -152,6 +152,44 @@ def storage_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
         for storage_dict in json.loads(metrics_string)
         for key, value in storage_dict.items()
         if key != 'name'
+    ]
+
+
+def process_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
+    """
+    Make a key-pvproperty kwarg dictionary from a JSON string.
+
+    The process metrics are of the form (note the surrounding list):
+        [{"data": [[ts, value], ...], "label": "value2"},
+         ...
+         ]
+
+    .. note::
+
+        This may be slightly inaccurate due to phase offsets/process metrics
+        updating out-of-sync with our polling loop. At worst, we're
+        consistently ~1 minute off.
+    """
+
+    def get_value(data):
+        if not data:
+            return 0
+
+        try:
+            # value from the last (timestamp, value) pair
+            return data[-1][1]
+        except Exception:
+            return 0.0
+
+    def to_process_info(label='unknown', data=None, **kwargs):
+        return {
+            "name": inflection.camelize(label.split(' ', 1)[0]),
+            "value": get_value(data),
+        }
+
+    return [
+        to_process_info(**metrics_dict)
+        for metrics_dict in json.loads(metrics_string)
     ]
 
 
@@ -389,6 +427,11 @@ class Archstats(PVGroup):
                     Request(
                         url=f'{self.appliance_url}mgmt/bpl/getStorageMetricsForAppliance',
                         transformer=storage_metrics_to_pvproperties,
+                        parameters=dict(appliance=instance)
+                    ),
+                    Request(
+                        url=f'{self.appliance_url}mgmt/bpl/getProcessMetricsDataForAppliance',
+                        transformer=process_metrics_to_pvproperties,
                         parameters=dict(appliance=instance)
                     ),
                 ],

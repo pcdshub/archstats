@@ -7,6 +7,7 @@ echo "Caching information for testing from ${ARCH_HOST}..."
 # curl ${ARCH_HOST}/mgmt/bpl/getApplianceMetrics  > archstats/tests/json/getApplianceMetrics.json
 # curl ${ARCH_HOST}/mgmt/bpl/getStorageMetrics  > archstats/tests/json/getStorageMetrics.json
 # curl ${ARCH_HOST}/mgmt/bpl/getInstanceMetrics  > archstats/tests/json/getInstanceMetrics.json
+curl ${ARCH_HOST}/mgmt/bpl/getProcessMetrics  > archstats/tests/json/getProcessMetrics.json
 
  for appliance in ${APPLIANCES}; do
     echo "Appliance ${appliance}"
