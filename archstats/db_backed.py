@@ -1,17 +1,20 @@
 import abc
+import dataclasses
 import datetime
+import json
 import logging
 import operator
-# import typing
 import uuid
-from typing import Generator, Optional, Tuple
+from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type
 
+import aiohttp
 import inflection
 from caproto.server import (AsyncLibraryLayer, PVGroup, PvpropertyData,
-                            pvproperty)
+                            SubGroup, pvproperty)
 from elasticsearch import AsyncElasticsearch
 
 logger = logging.getLogger(__name__)
+_session = None
 
 
 class DatabaseHandlerInterface(abc.ABC):
@@ -332,3 +335,191 @@ class AutomaticElasticHandler(ElasticHandler):
                  ):
         super().__init__(*args, **kwargs)
         self.min_write_period = min_write_period
+
+
+@dataclasses.dataclass
+class Response:
+    timestamp: datetime.datetime
+    raw: str
+    data: dict
+
+    def get_time_since(self) -> datetime.timedelta:
+        """Time since the request was made."""
+        return datetime.datetime.now() - self.timestamp
+
+
+@dataclasses.dataclass
+class Request:
+    """Dataclass representing an http request."""
+    url: str
+    parameters: Optional[dict] = None
+    method: str = 'get'
+    transformer: Optional[callable] = json.loads
+
+    last_response: Optional[Response] = None
+    cache_period: Optional[float] = 2.0
+
+    async def make(self, session: Optional[aiohttp.ClientSession] = None) -> dict:
+        """
+        Make a request and convert the JSON response to a dictionary.
+
+        Parameters
+        ----------
+        session : aiohttp.ClientSession, optional
+            The client session - defaults to using the globally shared one.
+        """
+
+        if self.cache_period and self.last_response is not None:
+            if self.last_response.get_time_since().total_seconds() < self.cache_period:
+                logger.debug('Using cached response for %s (%s)', self.url,
+                             self.parameters)
+                return self.last_response.data
+
+        if session is None:
+            session = get_global_session()
+
+        method = {
+            'get': session.get,
+            'put': session.put,
+        }[self.method]
+
+        async with method(self.url, params=self.parameters) as response:
+            raw_response = await response.text()
+            assert response.status == 200
+
+        if self.transformer is None:
+            data = raw_response
+        else:
+            data = self.transformer(raw_response)
+
+        self.last_response = Response(
+            timestamp=datetime.datetime.now(),
+            raw=raw_response,
+            data=data,
+        )
+        return data
+
+
+def get_global_session() -> aiohttp.ClientSession:
+    """Get the shared aiohttp ClientSession."""
+    global _session
+    if _session is None:
+        _session = aiohttp.ClientSession()
+    return _session
+
+
+class JSONRequestGroup(PVGroup):
+    """
+    Generic request -> JSON response to PVGroup helper.
+    """
+
+    async def __ainit__(self):
+        """
+        A special async init handler.
+        """
+
+    async def update(self):
+        ...
+
+    @classmethod
+    async def from_request(
+            cls,
+            name: str,
+            request: Request,
+            *,
+            session: Optional[aiohttp.ClientSession] = None,
+            ) -> Type['JSONRequestGroup']:
+        """
+        Make a request andn generate a new PVGroup based on the response.
+
+        Parameters
+        ----------
+        name : str
+            The new class name.
+
+        request : Request (or sequence of Request)
+            The request object (or objects) used to make the query and generate
+            the PV database.
+
+        session : aiohttp.ClientSession, optional
+            The aiohttp client session (defaults to the global session).
+        """
+        if isinstance(request, Sequence):
+            requests = list(request)
+        else:
+            requests = [request]
+
+        clsdict = dict(
+            requests=requests,
+            key_to_attr_map={},
+        )
+
+        key_to_attr_map: Dict[str, str] = clsdict['key_to_attr_map']
+
+        for request in requests:
+            response = await request.make(session=session)
+            for item in response:
+                attr, prop = cls.create_pvproperty(item)
+                if attr in clsdict:
+                    logger.warning('Attribute shadowed: %s', attr)
+                clsdict[attr] = prop
+                key_to_attr_map[item['name']] = attr
+
+        return type(name, (cls, ), clsdict)
+
+    @classmethod
+    def create_pvproperty(cls, item: Dict[str, Any]) -> Tuple[str, pvproperty]:
+        """
+        Create a pvproperty dynamically from a portion fo the JSON response.
+
+        Parameters
+        ----------
+        item : dict
+            Single dictionary of information from the response. Expected to
+            contain the keys "name" and "value" at minimum. May also contain
+            a pre-defined "attr".
+        """
+        # Shallow-copy the item and remove `attr`
+        item = dict(item)
+        attr = item.pop('attr', inflection.underscore(item['name']))
+        attr = attr.replace(':', '_')
+        if not attr.isidentifier():
+            old_attr = attr
+            attr = f'json_{abs(hash(attr))}'
+            logger.warning('Invalid identifier: %s -> %s', old_attr, attr)
+
+        kwargs = item.get('kwargs', {})
+        return attr, pvproperty(name=item['name'], value=item['value'],
+                                **kwargs)
+
+
+class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
+    """
+    Extends the JSON request-backed PVGroup by storing the gathered information
+    in an external database instance.
+    """
+    handlers = {
+        'elastic': ManualElasticHandler,
+    }
+    init_document: Optional[dict] = None
+
+    db_helper = SubGroup(DatabaseBackedHelper)
+
+    def __init__(self, *args,
+                 index: Optional[str] = None,
+                 backend: str,
+                 url: str,
+                 **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_document = None
+
+        # Init here
+        handler_class: Type[DatabaseHandler] = self.handlers[backend]
+        self.db_helper.handler = handler_class(self, url, index=index)
+
+    async def __ainit__(self):
+        """
+        A special async init handler.
+        """
+        await super().__ainit__()
+        self.init_document = await self.db_helper.handler.get_last_document()
