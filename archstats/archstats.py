@@ -161,6 +161,10 @@ class Response:
     raw: str
     data: dict
 
+    def get_time_since(self) -> datetime.timedelta:
+        """Time since the request was made."""
+        return datetime.datetime.now() - self.timestamp
+
 
 @dataclasses.dataclass
 class Request:
@@ -182,6 +186,12 @@ class Request:
         session : aiohttp.ClientSession, optional
             The client session - defaults to using the globally shared one.
         """
+
+        if self.cache_period and self.last_response is not None:
+            if self.last_response.get_time_since().total_seconds() < self.cache_period:
+                logger.debug('Using cached response for %s (%s)', self.url,
+                             self.parameters)
+                return self.last_response.data
 
         if session is None:
             session = get_global_session()
