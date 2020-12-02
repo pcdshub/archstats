@@ -10,7 +10,6 @@ from caproto.server import AsyncLibraryLayer, PVGroup, pvproperty
 
 from .db_backed import DatabaseBackedJSONRequestGroup, Request
 
-_session = None
 logger = logging.getLogger(__name__)
 
 
