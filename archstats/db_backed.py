@@ -103,7 +103,8 @@ def get_latest_timestamp(instances: Tuple[PvpropertyData, ...]) -> datetime.date
         channeldata.timestamp for channeldata in instances
     )
 
-    return datetime.datetime.fromtimestamp(latest_posix_stamp).astimezone()
+    dt = datetime.datetime.fromtimestamp(latest_posix_stamp)
+    return dt.astimezone(datetime.timezone.utc)
 
 
 async def restore_from_document(group: PVGroup, doc: dict,
