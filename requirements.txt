@@ -1,5 +1,5 @@
 aiohttp[speedups]
-caproto[standard]
+caproto[standard]>=0.7.0
 elasticsearch[async]>=7.8.0
 inflection
 versioneer
