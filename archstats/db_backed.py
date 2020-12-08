@@ -166,7 +166,9 @@ class DatabaseHandler(DatabaseHandlerInterface):
         if not document:
             return None
 
-        document[self.TIMESTAMP_KEY] = self.get_timestamp_from_instances(instances)
+        # Keep the document timestamp in UTC time:
+        dt = self.get_timestamp_from_instances(instances)
+        document[self.TIMESTAMP_KEY] = dt.astimezone(datetime.timezone.utc)
         return document
 
     async def restore_from_document(self, doc: dict):
@@ -254,8 +256,8 @@ class ElasticHandler(DatabaseHandler):
 
     @property
     def date_suffix(self) -> str:
-        """Date suffix for use with the index name."""
-        return datetime.datetime.now().strftime(self.date_suffix_format)
+        """UTC time date suffix for use with the index name."""
+        return datetime.datetime.utcnow().strftime(self.date_suffix_format)
 
     async def startup(self, group: PVGroup, async_lib: AsyncLibraryLayer):
         """Startup hook."""
