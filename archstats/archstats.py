@@ -1,6 +1,7 @@
 import ast
 import json
 import logging
+import math
 import re
 from functools import partial
 from typing import Any, List, Optional
@@ -18,6 +19,13 @@ logger = logging.getLogger(__name__)
 # the following - nothing overly complicated is necessary, as literal_eval
 # will do the heavy lifting down the line:
 RE_NUMBER_WITH_COMMA = re.compile(r'^[0-9,.]+$')
+
+# The appliance may send us back integer reprs for values which are actually
+# floats.  Try to fix that up with these keys:
+FLOAT_KEYS = {
+    "time_copy_data_into_store",
+    "time_copy_data_into_store_percent",
+}
 
 
 def key_to_pv(key: str) -> str:
@@ -51,7 +59,10 @@ def key_to_pv(key: str) -> str:
 
 def archiver_literal_eval(value: str) -> Any:
     """literaleval-like function for archiver metrics values."""
-    if RE_NUMBER_WITH_COMMA.match(value):
+    if value == 'NaN':
+        return math.nan
+
+    if isinstance(value, str) and RE_NUMBER_WITH_COMMA.match(value):
         value = value.replace(',', '')
 
     try:
@@ -60,12 +71,18 @@ def archiver_literal_eval(value: str) -> Any:
         return value
 
 
-def _value_to_pvproperty_kwargs(key: str, value: Any) -> dict:
+def _maybe_make_float(key: str, value: Any) -> Any:
+    if key in FLOAT_KEYS:
+        return float(value)
+    return value
+
+
+def _value_to_pvproperty_kwargs(name: str, key: str, value: Any) -> dict:
     """
     Take a value (an integer, float, bool, or string) and return the keyword
     arguments to make a new `pvproperty`.
     """
-    value = archiver_literal_eval(value)
+    value = _maybe_make_float(key, archiver_literal_eval(value))
 
     kwargs = {
         'doc': key,
@@ -82,6 +99,7 @@ def _value_to_pvproperty_kwargs(key: str, value: Any) -> dict:
         kwargs['max_length'] = 2000
 
     return {
+        'name': name,
         'value': value,
         'kwargs': kwargs,
     }
@@ -100,9 +118,8 @@ def instance_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
         return instance_dict['instance'] + ':' + key_to_pv(key)
 
     return [
-        dict(
-            name=to_instance_pv(instance_dict, key),
-            **_value_to_pvproperty_kwargs(key, value)
+        _value_to_pvproperty_kwargs(
+            to_instance_pv(instance_dict, key), key, value
         )
         for instance_dict in json.loads(metrics_string)
         for key, value in instance_dict.items()
@@ -123,27 +140,32 @@ def detailed_metrics_to_pvproperties(instance: str, metrics_string: str) -> List
             if name.startswith('Estimated bytes transferred in ETL'):
                 # A special case - the units on these can change dynamically
                 # underneath us.  Adjust to keep it always in MB.
-                value = archiver_literal_eval(item['value'])
+                try:
+                    value = archiver_literal_eval(item['value'])
+                    unitless_name, units = item['name'].rsplit('(', 1)
+                    units = units.rstrip(')')
+                    if value:
+                        if units == 'KB':
+                            value /= 1024.0  # KB -> MB
+                        elif units == 'MB':
+                            ...
+                        elif units == 'GB':
+                            value *= 1024.0  # GB -> MB
 
-                unitless_name, units = item['name'].rsplit('(', 1)
-                units = units.rstrip(')')
-                if value:
-                    if units == 'KB':
-                        value /= 1024.0  # KB -> MB
-                    elif units == 'MB':
-                        ...
-                    elif units == 'GB':
-                        value *= 1024.0  # GB -> MB
-
-                item['name'] = f'{unitless_name}(MB)'
-                item['value'] = str(value)
+                    item['name'] = f'{unitless_name}(MB)'
+                    item['value'] = str(value)
+                except Exception as ex:
+                    logger.warning(
+                        'Failed to parse "%s" = %s: %s',
+                        name, item['value'], ex
+                    )
+                    continue
 
             yield item
 
     return [
-        dict(
-            name=key_to_pv(item['name']),
-            **_value_to_pvproperty_kwargs(item['name'], item['value'])
+        _value_to_pvproperty_kwargs(
+            key_to_pv(item['name']), item['name'], item['value']
         )
         for item in load_and_filter(metrics_string)
     ]
@@ -166,8 +188,8 @@ def storage_metrics_to_pvproperties(metrics_string: str) -> List[dict]:
 
     return [
         dict(
-            name=to_storage_pv(storage_dict, key),
-            **_value_to_pvproperty_kwargs(key, value)
+            _value_to_pvproperty_kwargs(to_storage_pv(storage_dict, key), key,
+                                        value)
         )
         for storage_dict in json.loads(metrics_string)
         for key, value in storage_dict.items()
@@ -256,7 +278,7 @@ class Archstats(PVGroup):
             for appliance_info in json.loads(basic_metrics_req.last_response.raw)
         ]
 
-        for idx, instance in enumerate(instances):
+        for instance in instances:
             await self._add_dynamic_group(
                 f'DetailedMetricsGroup{instance}',
                 [
@@ -276,17 +298,20 @@ class Archstats(PVGroup):
                         parameters=dict(appliance=instance)
                     ),
                 ],
-                index=f'archiver_appliance_metrics_{instance.lower()}',
+                index=self.get_index_name(instance=instance.lower()),
                 prefix=f'{instance}:',
             )
 
+    def get_index_name(self, instance):
+        return f'archiver_appliance_metrics_{instance.lower()}'
+
     async def _add_dynamic_group(
-            self,
-            class_name: str,
-            request: Request,
-            index: Optional[str] = None,
-            prefix: str = '',
-            ) -> DatabaseBackedJSONRequestGroup:
+        self,
+        class_name: str,
+        request: Request,
+        index: Optional[str] = None,
+        prefix: str = '',
+    ) -> DatabaseBackedJSONRequestGroup:
         """
         Add a dynamic PVGroup to be periodically updated.
 
@@ -317,6 +342,14 @@ class Archstats(PVGroup):
         self._document_count[group] = 0
         self._pvs_.update(group._pvs_)
         self.pvdb.update(group.pvdb)
+
+        # Support multiple appliances in the same index:
+        query = group.db_helper.handler.get_last_document_query
+        query["query"] = {
+            "term": {
+                "appliance_identity": group.appliance_identity.value,
+            }
+        }
 
         if hasattr(group, '__ainit__'):
             await group.__ainit__()
