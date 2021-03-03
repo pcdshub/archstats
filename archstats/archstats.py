@@ -2,6 +2,7 @@ import ast
 import json
 import logging
 import math
+import os
 import re
 from functools import partial
 from typing import Any, List, Optional
@@ -14,6 +15,13 @@ from .db_backed import DatabaseBackedJSONRequestGroup, Request
 
 logger = logging.getLogger(__name__)
 
+
+# INDEX_FORMAT = os.environ.get("ARCHSTATS_INDEX_FORMAT", "archiver-appliance-statistics")
+INDEX_FORMAT = os.environ.get(
+    "ARCHSTATS_INDEX_FORMAT",
+    "archiver_appliance_statistics-{appliance}"
+)
+INDEX_SUFFIX = os.environ.get("ARCHSTATS_INDEX_SUFFIX", "-%Y.%m.%d")
 
 # Numbers are stored as strings with commas for readability. Match them with
 # the following - nothing overly complicated is necessary, as literal_eval
@@ -298,12 +306,13 @@ class Archstats(PVGroup):
                         parameters=dict(appliance=instance)
                     ),
                 ],
-                index=self.get_index_name(instance=instance.lower()),
+                index=self.get_index_name(appliance=instance.lower()),
                 prefix=f'{instance}:',
             )
 
-    def get_index_name(self, instance):
-        return f'archiver_appliance_metrics_{instance.lower()}'
+    def get_index_base_name(self, appliance):
+        """Get the base name for the elasticsearch index."""
+        return INDEX_FORMAT.format(appliance=appliance)
 
     async def _add_dynamic_group(
         self,
