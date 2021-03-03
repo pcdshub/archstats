@@ -32,6 +32,17 @@ Configuration
       - The database URL. The default assumes elasticsearch runs on this
         machine.
 
+    * - ARCHSTATS_INDEX_FORMAT
+      - archiver-appliance-stats
+      - The default format for the Elasticsearch index.  May use variable
+        `{appliance}` in name, such as:
+        "archiver_appliance_statistics-{appliance}"
+
+    * - ARCHSTATS_INDEX_SUFFIX
+      -
+      - The default suffix for the Elasticsearch index.  May use
+        `strftime`-style strings to get monthly indices: `"-%Y.%m"`
+
 
 With the above environment variables set appropriately, starting ``archstats``
 should be as simple as running ``archstats``::
@@ -63,3 +74,10 @@ EPICS::
     ARCH:pscaa02:EngineHeap        48.1998
     ARCH:pscaa02:EtlHeap           23.9628
     ARCH:pscaa02:RetrievalHeap     21.7903
+
+
+Grafana
+-------
+
+Ensure the data source has a minimum interval of 1 minute configured - this is
+the pre-determined update rate archstats uses.

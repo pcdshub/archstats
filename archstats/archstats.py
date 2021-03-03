@@ -31,6 +31,10 @@ RE_NUMBER_WITH_COMMA = re.compile(r'^[0-9,.]+$')
 FLOAT_KEYS = {
     "time_copy_data_into_store",
     "time_copy_data_into_store_percent",
+    "aggregated_appliance_event_rate_in_events_per_sec",
+    "benchmark_writing_at_mb_per_sec",
+    "data_rate_in_mb_per_year",
+    "data_rate_in_gb_per_year",
 }
 
 
