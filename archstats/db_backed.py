@@ -3,6 +3,7 @@ import dataclasses
 import datetime
 import json
 import logging
+import math
 import operator
 import uuid
 from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Type
@@ -137,6 +138,7 @@ async def restore_from_document(group: PVGroup, doc: dict,
 
 class DatabaseHandler(DatabaseHandlerInterface):
     TIMESTAMP_KEY: str = '@timestamp'
+    NAN_VALUE = math.nan
 
     def get_instances(self) -> Generator[PvpropertyData, None, None]:
         """Get all pvproperty instances to save."""
@@ -155,11 +157,33 @@ class DatabaseHandler(DatabaseHandlerInterface):
         # By default, get the latest timestamp:
         return get_latest_timestamp(instances)
 
+    def replace_nan(self, value):
+        """
+        Some databases may be unable to store NaN values.  Replace them
+        on a class-by-class basis with ``NAN_VALUE``.
+
+        Parameters
+        ----------
+        value : any
+            The value to check.
+
+        Returns
+        -------
+        value : any
+            NAN_VALUE if the input is NaN, else the original value.
+        """
+        try:
+            if math.isnan(value):
+                return self.NAN_VALUE
+        except TypeError:
+            ...
+        return value
+
     def create_document(self) -> Optional[dict]:
         """Create a document based on the current IOC state."""
         instances = tuple(self.get_instances())
         document = {
-            channeldata.pvspec.attr: channeldata.value
+            channeldata.pvspec.attr: self.replace_nan(channeldata.value)
             for channeldata in instances
         }
 
@@ -198,7 +222,8 @@ class ElasticHandler(DatabaseHandler):
     restore_on_startup: bool
     _dated_index: str
     _restoring: bool
-    date_suffix_format = '%Y.%m.%d'
+    date_suffix_format = '-%Y.%m.%d'
+    NAN_VALUE: float = 0.0   # sorry :(
 
     def __init__(self,
                  group: PVGroup,
@@ -206,6 +231,7 @@ class ElasticHandler(DatabaseHandler):
                  skip_attributes: Optional[set] = None,
                  es: AsyncElasticsearch = None,
                  index: Optional[str] = None,
+                 index_suffix: Optional[str] = None,
                  restore_on_startup: bool = True,
                  ):
         self.group = group
@@ -215,8 +241,16 @@ class ElasticHandler(DatabaseHandler):
         ).lower()
 
         self.index = index or default_idx
-        self.group.log.info('%s using elastic index: %s', group, self.index)
+        self.index_suffix = index_suffix or ''
+        self.index_search_glob = f'{self.index}*',
+        self.group.log.info(
+            '%s using elastic index %r (suffix %r)',
+            group, self.index, self.index_suffix
+        )
         self._dated_index = None
+        self.get_last_document_query = {
+           'sort': {self.TIMESTAMP_KEY: 'desc'}
+        }
 
         self.skip_attributes = skip_attributes or {}
         if es is None:
@@ -224,7 +258,11 @@ class ElasticHandler(DatabaseHandler):
         self.es = es
         self.restore_on_startup = restore_on_startup
         self._restoring = False
-        logger.warning('Elasticsearch: %s Index: %s', self.es, self.index)
+        logger.warning(
+            'Elasticsearch: %s Index: %r %s',
+            self.es, self.index,
+            f'(suffix {self.index_suffix!r})' if self.index_suffix else ''
+        )
 
     def new_id(self) -> str:
         """Generate a new document ID."""
@@ -233,8 +271,8 @@ class ElasticHandler(DatabaseHandler):
     async def get_last_document(self) -> dict:
         """Get the latest document from the database."""
         result = await self.es.search(
-            index=f'{self.index}-*',
-            body={'sort': {self.TIMESTAMP_KEY: 'desc'}},
+            index=self.index_search_glob,
+            body=self.get_last_document_query,
             size=1,
         )
 
@@ -246,7 +284,7 @@ class ElasticHandler(DatabaseHandler):
 
     async def get_dated_index_name(self) -> str:
         """Index name with a date suffix ({index}-{date_suffix})."""
-        index = f'{self.index}-{self.date_suffix}'
+        index = f'{self.index}{self.formatted_index_suffix}'
         if index != self._dated_index:
             self._dated_index = index
             # 400 - ignore if index already exists
@@ -255,9 +293,9 @@ class ElasticHandler(DatabaseHandler):
         return index
 
     @property
-    def date_suffix(self) -> str:
-        """UTC time date suffix for use with the index name."""
-        return datetime.datetime.utcnow().strftime(self.date_suffix_format)
+    def formatted_index_suffix(self) -> str:
+        """Optionally a UTC time date suffix for use with the index name."""
+        return datetime.datetime.utcnow().strftime(self.index_suffix)
 
     async def startup(self, group: PVGroup, async_lib: AsyncLibraryLayer):
         """Startup hook."""
@@ -305,10 +343,11 @@ class ElasticHandler(DatabaseHandler):
     async def store(self):
         """Store all data as a new document."""
         index = await self.get_dated_index_name()
+        document = self.create_document()
         await self.es.create(
             index=index,
             id=self.new_id(),
-            body=self.create_document()
+            body=document,
         )
 
 
@@ -509,6 +548,7 @@ class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
 
     def __init__(self, *args,
                  index: Optional[str] = None,
+                 index_suffix: Optional[str] = None,
                  backend: str,
                  url: str,
                  **kwargs):
@@ -517,11 +557,20 @@ class DatabaseBackedJSONRequestGroup(JSONRequestGroup):
 
         # Init here
         handler_class: Type[DatabaseHandler] = self.handlers[backend]
-        self.db_helper.handler = handler_class(self, url, index=index)
+        self.db_helper.handler = handler_class(
+            self, url, index=index, index_suffix=index_suffix
+        )
 
     async def __ainit__(self):
         """
         A special async init handler.
         """
         await super().__ainit__()
-        self.init_document = await self.db_helper.handler.get_last_document()
+        try:
+            self.init_document = await self.db_helper.handler.get_last_document()
+        except Exception:
+            logger.warning(
+                'Unable to get last database document; are we starting from '
+                'scratch or is there a misconfiguration?'
+            )
+            self.init_document = None
