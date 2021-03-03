@@ -16,12 +16,10 @@ from .db_backed import DatabaseBackedJSONRequestGroup, Request
 logger = logging.getLogger(__name__)
 
 
-# INDEX_FORMAT = os.environ.get("ARCHSTATS_INDEX_FORMAT", "archiver-appliance-statistics")
-INDEX_FORMAT = os.environ.get(
-    "ARCHSTATS_INDEX_FORMAT",
-    "archiver_appliance_statistics-{appliance}"
-)
-INDEX_SUFFIX = os.environ.get("ARCHSTATS_INDEX_SUFFIX", "-%Y.%m.%d")
+INDEX_FORMAT = os.environ.get("ARCHSTATS_INDEX_FORMAT", "archiver-appliance-stats")
+# Alternatively, per-appliance indices: "archiver_appliance_statistics-{appliance}"
+INDEX_SUFFIX = os.environ.get("ARCHSTATS_INDEX_SUFFIX", "")
+# Alternatively, month-based indices for example:: "-%Y.%m"
 
 # Numbers are stored as strings with commas for readability. Match them with
 # the following - nothing overly complicated is necessary, as literal_eval
@@ -306,7 +304,8 @@ class Archstats(PVGroup):
                         parameters=dict(appliance=instance)
                     ),
                 ],
-                index=self.get_index_name(appliance=instance.lower()),
+                index=self.get_index_base_name(appliance=instance.lower()),
+                index_suffix=INDEX_SUFFIX,
                 prefix=f'{instance}:',
             )
 
@@ -319,6 +318,7 @@ class Archstats(PVGroup):
         class_name: str,
         request: Request,
         index: Optional[str] = None,
+        index_suffix: Optional[str] = None,
         prefix: str = '',
     ) -> DatabaseBackedJSONRequestGroup:
         """
@@ -342,11 +342,14 @@ class Archstats(PVGroup):
 
         group_cls = await DatabaseBackedJSONRequestGroup.from_request(
             class_name, request)
-        group = group_cls(prefix=f'{self.prefix}{prefix}',
-                          backend=self.database_backend,
-                          url=self.database_url,
-                          index=index, parent=self)
-
+        group = group_cls(
+            prefix=f'{self.prefix}{prefix}',
+            backend=self.database_backend,
+            url=self.database_url,
+            index=index,
+            index_suffix=index_suffix,
+            parent=self,
+        )
         self._dynamic_groups.append(group)
         self._document_count[group] = 0
         self._pvs_.update(group._pvs_)
