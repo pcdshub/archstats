@@ -45,3 +45,8 @@ With the above, the datasource configuration should look like the following in
 Grafana:
 
 .. image:: https://raw.githubusercontent.com/pcdshub/archstats/assets/images/datasource.png
+
+Ensure the data source has a minimum interval of 1 minute configured.  This is
+the pre-determined update rate archstats uses to not overwhelm the archiver,
+and as such there is no benefit to attempting to display any finer granularity
+in Grafana panels.
