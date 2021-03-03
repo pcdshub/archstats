@@ -202,6 +202,17 @@ $ pip install .
 <td><p>The database URL. The default assumes elasticsearch runs on this
 machine.</p></td>
 </tr>
+<tr class="row-odd"><td><p>ARCHSTATS_INDEX_FORMAT</p></td>
+<td><p>archiver-appliance-stats</p></td>
+<td><p>The default format for the Elasticsearch index.  May use variable
+<cite>{appliance}</cite> in name, such as:
+“archiver_appliance_statistics-{appliance}”</p></td>
+</tr>
+<tr class="row-even"><td><p>ARCHSTATS_INDEX_SUFFIX</p></td>
+<td></td>
+<td><p>The default suffix for the Elasticsearch index.  May use
+<cite>strftime</cite>-style strings to get monthly indices: <cite>“-%Y.%m”</cite></p></td>
+</tr>
 </tbody>
 </table>
 <p>With the above environment variables set appropriately, starting <code class="docutils literal notranslate"><span class="pre">archstats</span></code>

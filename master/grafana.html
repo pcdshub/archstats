@@ -179,16 +179,32 @@ repository:</p>
 will depend on your archiver appliance setup.</p>
 <div class="section" id="elasticsearch-index">
 <h2>Elasticsearch Index<a class="headerlink" href="#elasticsearch-index" title="Permalink to this headline">¶</a></h2>
-<p>The index name will be in the following format:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">archiver_appliance_metrics_APPLIANCE_NAME_HERE</span><span class="p">]</span><span class="o">-</span><span class="n">YYYY</span><span class="o">.</span><span class="n">MM</span><span class="o">.</span><span class="n">DD</span>
+<p>By default, the index name will be in the following format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">archiver</span><span class="o">-</span><span class="n">appliance</span><span class="o">-</span><span class="n">stats</span>
 </pre></div>
 </div>
-<p>Replacing <code class="docutils literal notranslate"><span class="pre">APPLIANCE_NAME_HERE</span></code> with your appliance name.  The YYYY.MM.DD
-portion at the end indicates that the index will be updated on a daily basis.
+<p>You should consider using this form and rolling over the database every so
+often with a cron job.</p>
+<p>You may also configure it for monthly indices by changing the appropriate
+environment variables, such as:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ARCHSTATS_INDEX_FORMAT</span><span class="o">=</span><span class="s2">&quot;archiver-metrics-</span><span class="si">{appliance}</span><span class="s2">&quot;</span>
+<span class="n">ARCHSTATS_INDEX_SUFFIX</span><span class="o">=</span><span class="s2">&quot;-%Y.%m&quot;</span>
+</pre></div>
+</div>
+<p>Which would be specified as follows in Grafana:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">archiver</span><span class="o">-</span><span class="n">metrics</span><span class="o">-</span><span class="n">APPLIANCE_NAME</span><span class="p">]</span><span class="o">-</span><span class="n">YYYY</span><span class="o">.</span><span class="n">MM</span>
+</pre></div>
+</div>
+<p>Replacing <code class="docutils literal notranslate"><span class="pre">APPLIANCE_NAME_HERE</span></code> with your appliance name.  The YYYY.MM
+portion at the end indicates that the index will be updated on a monthly basis.
 Elasticsearch handles these multiple indices natively.</p>
 <p>With the above, the datasource configuration should look like the following in
 Grafana:</p>
 <img alt="https://raw.githubusercontent.com/pcdshub/archstats/assets/images/datasource.png" src="https://raw.githubusercontent.com/pcdshub/archstats/assets/images/datasource.png" />
+<p>Ensure the data source has a minimum interval of 1 minute configured.  This is
+the pre-determined update rate archstats uses to not overwhelm the archiver,
+and as such there is no benefit to attempting to display any finer granularity
+in Grafana panels.</p>
 </div>
 </div>
 
