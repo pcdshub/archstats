@@ -12,14 +12,16 @@
       }
     ]
   },
+  "description": "Statistics for the two PCDS archiver appliances (pscaa01, pscaa02) from ioc-archstats",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 14,
+  "id": 33,
+  "iteration": 1614810022583,
   "links": [],
   "panels": [
     {
-      "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+      "datasource": "Archiver Statistics",
       "fieldConfig": {
         "defaults": {
           "custom": {},
@@ -55,6 +57,7 @@
         "y": 0
       },
       "id": 16,
+      "interval": "1m",
       "options": {
         "reduceOptions": {
           "calcs": [
@@ -64,9 +67,18 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": false
+        "showThresholdMarkers": false,
+        "text": {}
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
+      "repeat": "appliance",
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa01",
+          "value": "pscaa01"
+        }
+      },
       "targets": [
         {
           "alias": "Short-term",
@@ -91,7 +103,7 @@
               "type": "min"
             }
           ],
-          "query": "",
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
           "timeField": "@timestamp"
         },
@@ -118,6 +130,7 @@
               "type": "min"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "B",
           "timeField": "@timestamp"
         },
@@ -144,22 +157,20 @@
               "type": "min"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "C",
           "timeField": "@timestamp"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "pscaa01 - Available Storage",
+      "title": "${appliance} - Available Storage",
       "type": "gauge"
     },
     {
-      "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
+      "datasource": "Archiver Statistics",
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
           "custom": {},
           "decimals": 1,
           "mappings": [],
@@ -192,7 +203,8 @@
         "x": 12,
         "y": 0
       },
-      "id": 17,
+      "id": 22,
+      "interval": "1m",
       "options": {
         "reduceOptions": {
           "calcs": [
@@ -202,9 +214,19 @@
           "values": false
         },
         "showThresholdLabels": false,
-        "showThresholdMarkers": false
+        "showThresholdMarkers": false,
+        "text": {}
       },
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
+      "repeatIteration": 1614810022583,
+      "repeatPanelId": 16,
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa02",
+          "value": "pscaa02"
+        }
+      },
       "targets": [
         {
           "alias": "Short-term",
@@ -229,7 +251,7 @@
               "type": "min"
             }
           ],
-          "query": "",
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
           "timeField": "@timestamp"
         },
@@ -256,6 +278,7 @@
               "type": "min"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "B",
           "timeField": "@timestamp"
         },
@@ -282,13 +305,14 @@
               "type": "min"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "C",
           "timeField": "@timestamp"
         }
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "pscaa02 - Available Storage",
+      "title": "${appliance} - Available Storage",
       "type": "gauge"
     },
     {
@@ -296,23 +320,13 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+      "datasource": "Archiver Statistics",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "steps": []
           }
         },
         "overrides": []
@@ -320,13 +334,14 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "h": 5,
+        "w": 24,
         "x": 0,
         "y": 4
       },
       "hiddenSeries": false,
       "id": 7,
+      "interval": "1m",
       "legend": {
         "alignAsTable": false,
         "avg": false,
@@ -345,12 +360,13 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
       "pointradius": 0.5,
       "points": true,
       "renderer": "flot",
       "seriesOverrides": [
         {
+          "$$hashKey": "object:495",
           "alias": "Total Storage Rate",
           "yaxis": 2
         }
@@ -366,7 +382,7 @@
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
@@ -382,6 +398,7 @@
               "type": "avg"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
           "timeField": "@timestamp"
         },
@@ -392,7 +409,7 @@
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
@@ -408,6 +425,7 @@
               "type": "avg"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "B",
           "timeField": "@timestamp"
         }
@@ -432,6 +450,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:502",
           "decimals": null,
           "format": "short",
           "label": "PV Count",
@@ -441,9 +460,609 @@
           "show": true
         },
         {
+          "$$hashKey": "object:503",
           "decimals": null,
           "format": "decgbytes",
           "label": "Storage/year",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": true,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "ETL Heap": "purple",
+        "Engine Heap": "super-light-red",
+        "Retrieval Heap": "green",
+        "System Load": "super-light-green"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Archiver Statistics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average system_load"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "System Load"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average retrieval_heap"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Retrieval Heap"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average engine_heap"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Engine Heap"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average etl_heap"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ETL Heap"
+              }
+            ]
+          }
+        ]
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "hiddenSeries": false,
+      "id": 10,
+      "interval": "1m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.4.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "repeat": "appliance",
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa01",
+          "value": "pscaa01"
+        }
+      },
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "1",
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "metrics": [
+            {
+              "field": "system_load",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "retrieval_heap",
+              "id": "3",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "engine_heap",
+              "id": "4",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "etl_heap",
+              "id": "5",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            }
+          ],
+          "query": "appliance_identity:${appliance}",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "${appliance} Load and Heap Status",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:755",
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:756",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "ETL Heap": "purple",
+        "Engine Heap": "super-light-red",
+        "Retrieval Heap": "green",
+        "System Load": "super-light-green"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Archiver Statistics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average system_load"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "System Load"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average retrieval_heap"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Retrieval Heap"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average engine_heap"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Engine Heap"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average etl_heap"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "ETL Heap"
+              }
+            ]
+          }
+        ]
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "hiddenSeries": false,
+      "id": 23,
+      "interval": "1m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.4.3",
+      "pointradius": 2,
+      "points": false,
+      "renderer": "flot",
+      "repeatIteration": 1614810022583,
+      "repeatPanelId": 10,
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa02",
+          "value": "pscaa02"
+        }
+      },
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "1",
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "metrics": [
+            {
+              "field": "system_load",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "retrieval_heap",
+              "id": "3",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "engine_heap",
+              "id": "4",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "etl_heap",
+              "id": "5",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            }
+          ],
+          "query": "appliance_identity:${appliance}",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "${appliance} Load and Heap Status",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:755",
+          "format": "percent",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:756",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {},
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "-- Mixed --",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          }
+        },
+        "overrides": []
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "hiddenSeries": false,
+      "id": 12,
+      "interval": "1m",
+      "legend": {
+        "alignAsTable": false,
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "rightSide": false,
+        "show": false,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 1,
+      "nullPointMode": "null",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.4.3",
+      "pointradius": 0.5,
+      "points": false,
+      "renderer": "flot",
+      "repeat": "appliance",
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa01",
+          "value": "pscaa01"
+        }
+      },
+      "seriesOverrides": [],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": false,
+      "targets": [
+        {
+          "alias": "Short-term",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "1",
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": "Archiver Statistics",
+          "metrics": [
+            {
+              "field": "sts_available_space_percent",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            }
+          ],
+          "query": "appliance_identity:${appliance}",
+          "refId": "A",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "Long-term",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "1",
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": "Archiver Statistics",
+          "metrics": [
+            {
+              "field": "lts_available_space_percent",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            }
+          ],
+          "query": "appliance_identity:${appliance}",
+          "refId": "B",
+          "timeField": "@timestamp"
+        },
+        {
+          "alias": "Medium-term",
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "1",
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "datasource": "Archiver Statistics",
+          "metrics": [
+            {
+              "field": "mts_available_space_percent",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            }
+          ],
+          "query": "appliance_identity:${appliance}",
+          "refId": "C",
+          "timeField": "@timestamp"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "${appliance} Available Storage",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:587",
+          "decimals": null,
+          "format": "percent",
+          "label": "",
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:588",
+          "decimals": null,
+          "format": "decgbytes",
+          "label": "",
           "logBase": 1,
           "max": null,
           "min": null,
@@ -464,19 +1083,9 @@
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "steps": []
           }
         },
         "overrides": []
@@ -484,13 +1093,14 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
+        "h": 7,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 16
       },
       "hiddenSeries": false,
-      "id": 12,
+      "id": 24,
+      "interval": "1m",
       "legend": {
         "alignAsTable": false,
         "avg": false,
@@ -509,30 +1119,39 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
       "pointradius": 0.5,
       "points": false,
       "renderer": "flot",
+      "repeatIteration": 1614810022583,
+      "repeatPanelId": 12,
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa02",
+          "value": "pscaa02"
+        }
+      },
       "seriesOverrides": [],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": false,
       "targets": [
         {
-          "alias": "pscaa01 short-term",
+          "alias": "Short-term",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
               "type": "date_histogram"
             }
           ],
-          "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+          "datasource": "Archiver Statistics",
           "metrics": [
             {
               "field": "sts_available_space_percent",
@@ -542,24 +1161,25 @@
               "type": "avg"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
           "timeField": "@timestamp"
         },
         {
-          "alias": "pscaa01 long-term",
+          "alias": "Long-term",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
               "type": "date_histogram"
             }
           ],
-          "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+          "datasource": "Archiver Statistics",
           "metrics": [
             {
               "field": "lts_available_space_percent",
@@ -569,24 +1189,25 @@
               "type": "avg"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "B",
           "timeField": "@timestamp"
         },
         {
-          "alias": "pscaa01 medium-term",
+          "alias": "Medium-term",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
               "type": "date_histogram"
             }
           ],
-          "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+          "datasource": "Archiver Statistics",
           "metrics": [
             {
               "field": "mts_available_space_percent",
@@ -596,88 +1217,8 @@
               "type": "avg"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "C",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "pscaa02 long-term",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "1m",
-                "min_doc_count": "1",
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
-          "metrics": [
-            {
-              "field": "lts_available_space_percent",
-              "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            }
-          ],
-          "refId": "D",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "pscaa02 medium-term",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "1m",
-                "min_doc_count": "1",
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
-          "metrics": [
-            {
-              "field": "mts_available_space_percent",
-              "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            }
-          ],
-          "refId": "E",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "pscaa02 short-term",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "1m",
-                "min_doc_count": "1",
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
-          "metrics": [
-            {
-              "field": "sts_available_space_percent",
-              "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            }
-          ],
-          "refId": "F",
           "timeField": "@timestamp"
         }
       ],
@@ -685,7 +1226,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Available Storage",
+      "title": "${appliance} Available Storage",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -701,6 +1242,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:587",
           "decimals": null,
           "format": "percent",
           "label": "",
@@ -710,6 +1252,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:588",
           "decimals": null,
           "format": "decgbytes",
           "label": "",
@@ -725,77 +1268,47 @@
       }
     },
     {
-      "aliasColors": {},
+      "aliasColors": {
+        "Total": "red"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+      "datasource": "-- Mixed --",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "unit": "percent"
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          }
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Average system_load"
+              "options": "Connected Ratio"
             },
             "properties": [
               {
-                "id": "displayName",
-                "value": "System Load"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average retrieval_heap"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Retrieval Heap"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average engine_heap"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Engine Heap"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average etl_heap"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "ETL Heap"
+                "id": "unit",
+                "value": "percentunit"
               }
             ]
           }
         ]
       },
-      "fill": 1,
+      "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 8,
+        "h": 6,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 23
       },
       "hiddenSeries": false,
-      "id": 10,
+      "id": 3,
+      "interval": "1m",
       "legend": {
         "avg": false,
         "current": false,
@@ -806,64 +1319,60 @@
         "values": false
       },
       "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
+      "linewidth": 2,
+      "nullPointMode": "connected",
       "options": {
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 2,
-      "points": false,
+      "pluginVersion": "7.4.3",
+      "pointradius": 0.5,
+      "points": true,
       "renderer": "flot",
-      "seriesOverrides": [],
+      "repeat": "appliance",
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa01",
+          "value": "pscaa01"
+        }
+      },
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:923",
+          "alias": "Connected Ratio",
+          "yaxis": 2
+        }
+      ],
       "spaceLength": 10,
       "stack": false,
-      "steppedLine": false,
+      "steppedLine": true,
       "targets": [
         {
+          "alias": "",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
               "type": "date_histogram"
             }
           ],
+          "datasource": "Archiver Statistics",
           "metrics": [
             {
-              "field": "system_load",
+              "field": "data_rate_in_bytes_per_sec",
               "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            },
-            {
-              "field": "retrieval_heap",
-              "id": "3",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            },
-            {
-              "field": "engine_heap",
-              "id": "4",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            },
-            {
-              "field": "etl_heap",
-              "id": "5",
               "meta": {},
               "settings": {},
               "type": "avg"
             }
           ],
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -872,12 +1381,13 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "pscaa01 Load and Heap Status",
+      "title": "${appliance} Data Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
         "value_type": "individual"
       },
+      "transformations": [],
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -888,7 +1398,8 @@
       },
       "yaxes": [
         {
-          "format": "percent",
+          "$$hashKey": "object:930",
+          "format": "Bps",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -896,192 +1407,8 @@
           "show": true
         },
         {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {},
-          "unit": "percent"
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average system_load"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "System Load"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average retrieval_heap"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Retrieval Heap"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average engine_heap"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Engine Heap"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average etl_heap"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "ETL Heap"
-              }
-            ]
-          }
-        ]
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
-      },
-      "hiddenSeries": false,
-      "id": 13,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "alertThreshold": true
-      },
-      "percentage": false,
-      "pluginVersion": "7.3.4",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "1m",
-                "min_doc_count": "1",
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "metrics": [
-            {
-              "field": "system_load",
-              "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            },
-            {
-              "field": "retrieval_heap",
-              "id": "3",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            },
-            {
-              "field": "engine_heap",
-              "id": "4",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            },
-            {
-              "field": "etl_heap",
-              "id": "5",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            }
-          ],
-          "refId": "A",
-          "timeField": "@timestamp"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "pscaa02 Load and Heap Status",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "percent",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
+          "$$hashKey": "object:931",
+          "format": "percentunit",
           "label": null,
           "logBase": 1,
           "max": null,
@@ -1105,19 +1432,9 @@
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "steps": []
           }
         },
         "overrides": [
@@ -1138,14 +1455,14 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 12,
-        "x": 0,
-        "y": 20
+        "x": 12,
+        "y": 23
       },
       "hiddenSeries": false,
-      "id": 3,
-      "interval": "30s",
+      "id": 25,
+      "interval": "1m",
       "legend": {
         "avg": false,
         "current": false,
@@ -1162,12 +1479,22 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
       "pointradius": 0.5,
       "points": true,
       "renderer": "flot",
+      "repeatIteration": 1614810022583,
+      "repeatPanelId": 3,
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa02",
+          "value": "pscaa02"
+        }
+      },
       "seriesOverrides": [
         {
+          "$$hashKey": "object:923",
           "alias": "Connected Ratio",
           "yaxis": 2
         }
@@ -1177,20 +1504,20 @@
       "steppedLine": true,
       "targets": [
         {
-          "alias": "pscaa01",
+          "alias": "",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
               "type": "date_histogram"
             }
           ],
-          "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+          "datasource": "Archiver Statistics",
           "metrics": [
             {
               "field": "data_rate_in_bytes_per_sec",
@@ -1200,35 +1527,8 @@
               "type": "avg"
             }
           ],
-          "query": "",
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "pscaa02",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "1m",
-                "min_doc_count": "1",
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
-          "metrics": [
-            {
-              "field": "data_rate_in_bytes_per_sec",
-              "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            }
-          ],
-          "refId": "B",
           "timeField": "@timestamp"
         }
       ],
@@ -1236,7 +1536,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Data Rate",
+      "title": "${appliance} Data Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1253,6 +1553,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:930",
           "format": "Bps",
           "label": null,
           "logBase": 1,
@@ -1261,6 +1562,412 @@
           "show": true
         },
         {
+          "$$hashKey": "object:931",
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "Connected Count": "green",
+        "Connected Ratio": "rgb(174, 174, 174)",
+        "PV Count": "red"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Archiver Statistics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Connected Ratio"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average total_pv_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PV Count"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average connected_pv_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Connected Count"
+              }
+            ]
+          }
+        ]
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 29
+      },
+      "hiddenSeries": false,
+      "id": 2,
+      "interval": "1m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 2,
+      "nullPointMode": "connected",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.4.3",
+      "pointradius": 0.5,
+      "points": true,
+      "renderer": "flot",
+      "repeat": "appliance",
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa01",
+          "value": "pscaa01"
+        }
+      },
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:1108",
+          "alias": "Connected Ratio",
+          "yaxis": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "1",
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "metrics": [
+            {
+              "field": "total_pv_count",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "connected_pv_count",
+              "id": "3",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            }
+          ],
+          "query": "appliance_identity:${appliance}",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "${appliance} - PV Count",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Connected Ratio",
+            "binary": {
+              "left": "Average connected_pv_count",
+              "operator": "/",
+              "reducer": "sum",
+              "right": "Average total_pv_count"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        }
+      ],
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:1115",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:1116",
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
+    },
+    {
+      "aliasColors": {
+        "Connected Count": "green",
+        "Connected Ratio": "rgb(174, 174, 174)",
+        "PV Count": "red"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Archiver Statistics",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Connected Ratio"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average total_pv_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "PV Count"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average connected_pv_count"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Connected Count"
+              }
+            ]
+          }
+        ]
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 29
+      },
+      "hiddenSeries": false,
+      "id": 26,
+      "interval": "1m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 2,
+      "nullPointMode": "connected",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.4.3",
+      "pointradius": 0.5,
+      "points": true,
+      "renderer": "flot",
+      "repeatIteration": 1614810022583,
+      "repeatPanelId": 2,
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa02",
+          "value": "pscaa02"
+        }
+      },
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:1108",
+          "alias": "Connected Ratio",
+          "yaxis": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "1",
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "metrics": [
+            {
+              "field": "total_pv_count",
+              "id": "1",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "field": "connected_pv_count",
+              "id": "3",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            }
+          ],
+          "query": "appliance_identity:${appliance}",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "thresholds": [],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "${appliance} - PV Count",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transformations": [
+        {
+          "id": "calculateField",
+          "options": {
+            "alias": "Connected Ratio",
+            "binary": {
+              "left": "Average connected_pv_count",
+              "operator": "/",
+              "reducer": "sum",
+              "right": "Average total_pv_count"
+            },
+            "mode": "binary",
+            "reduce": {
+              "reducer": "sum"
+            }
+          }
+        }
+      ],
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:1115",
+          "format": "short",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": true
+        },
+        {
+          "$$hashKey": "object:1116",
           "format": "percentunit",
           "label": null,
           "logBase": 1,
@@ -1287,19 +1994,9 @@
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "steps": []
           }
         },
         "overrides": []
@@ -1307,14 +2004,14 @@
       "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 12,
-        "x": 12,
-        "y": 20
+        "x": 0,
+        "y": 35
       },
       "hiddenSeries": false,
       "id": 4,
-      "interval": "30s",
+      "interval": "1m",
       "legend": {
         "avg": false,
         "current": false,
@@ -1331,12 +2028,21 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
       "pointradius": 0.5,
       "points": true,
       "renderer": "flot",
+      "repeat": "appliance",
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa01",
+          "value": "pscaa01"
+        }
+      },
       "seriesOverrides": [
         {
+          "$$hashKey": "object:1015",
           "alias": "Connected Ratio",
           "yaxis": 2
         }
@@ -1346,20 +2052,20 @@
       "steppedLine": true,
       "targets": [
         {
-          "alias": "pscaa01",
+          "alias": "",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "1m",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
               "type": "date_histogram"
             }
           ],
-          "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+          "datasource": "Archiver Statistics",
           "metrics": [
             {
               "field": "event_rate_in_events_per_sec",
@@ -1369,35 +2075,8 @@
               "type": "avg"
             }
           ],
-          "query": "",
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
-          "timeField": "@timestamp"
-        },
-        {
-          "alias": "pscaa02",
-          "bucketAggs": [
-            {
-              "field": "@timestamp",
-              "id": "2",
-              "settings": {
-                "interval": "1m",
-                "min_doc_count": "1",
-                "trimEdges": 0
-              },
-              "type": "date_histogram"
-            }
-          ],
-          "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
-          "metrics": [
-            {
-              "field": "event_rate_in_events_per_sec",
-              "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            }
-          ],
-          "refId": "B",
           "timeField": "@timestamp"
         }
       ],
@@ -1405,7 +2084,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Events Per Second",
+      "title": "${appliance} Events Per Second",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1422,6 +2101,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:1022",
           "format": "none",
           "label": "Events/sec",
           "logBase": 1,
@@ -1430,6 +2110,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:1023",
           "format": "percentunit",
           "label": null,
           "logBase": 1,
@@ -1445,82 +2126,35 @@
     },
     {
       "aliasColors": {
-        "Connected Count": "green",
-        "Connected Ratio": "rgb(174, 174, 174)",
-        "PV Count": "red"
+        "Average event_rate_in_events_per_sec": "red",
+        "Total": "red"
       },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Archiver Statistics - pscaa01 (archstats/elastic)",
+      "datasource": "-- Mixed --",
+      "description": "",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "steps": []
           }
         },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Connected Ratio"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percentunit"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average total_pv_count"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "PV Count"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average connected_pv_count"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Connected Count"
-              }
-            ]
-          }
-        ]
+        "overrides": []
       },
-      "fill": 1,
+      "fill": 0,
       "fillGradient": 0,
       "gridPos": {
-        "h": 7,
+        "h": 6,
         "w": 12,
-        "x": 0,
-        "y": 27
+        "x": 12,
+        "y": 35
       },
       "hiddenSeries": false,
-      "id": 2,
-      "interval": "30s",
+      "id": 27,
+      "interval": "1m",
       "legend": {
         "avg": false,
         "current": false,
@@ -1537,12 +2171,22 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
       "pointradius": 0.5,
       "points": true,
       "renderer": "flot",
+      "repeatIteration": 1614810022583,
+      "repeatPanelId": 4,
+      "scopedVars": {
+        "appliance": {
+          "selected": true,
+          "text": "pscaa02",
+          "value": "pscaa02"
+        }
+      },
       "seriesOverrides": [
         {
+          "$$hashKey": "object:1015",
           "alias": "Connected Ratio",
           "yaxis": 2
         }
@@ -1552,35 +2196,30 @@
       "steppedLine": true,
       "targets": [
         {
+          "alias": "",
           "bucketAggs": [
             {
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "10s",
+                "interval": "auto",
                 "min_doc_count": "1",
                 "trimEdges": 0
               },
               "type": "date_histogram"
             }
           ],
+          "datasource": "Archiver Statistics",
           "metrics": [
             {
-              "field": "total_pv_count",
+              "field": "event_rate_in_events_per_sec",
               "id": "1",
-              "meta": {},
-              "settings": {},
-              "type": "avg"
-            },
-            {
-              "field": "connected_pv_count",
-              "id": "3",
               "meta": {},
               "settings": {},
               "type": "avg"
             }
           ],
-          "query": "",
+          "query": "appliance_identity:${appliance}",
           "refId": "A",
           "timeField": "@timestamp"
         }
@@ -1589,30 +2228,13 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "pscaa01 - PV Count",
+      "title": "${appliance} Events Per Second",
       "tooltip": {
         "shared": true,
         "sort": 0,
         "value_type": "individual"
       },
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Connected Ratio",
-            "binary": {
-              "left": "Average connected_pv_count",
-              "operator": "/",
-              "reducer": "sum",
-              "right": "Average total_pv_count"
-            },
-            "mode": "binary",
-            "reduce": {
-              "reducer": "sum"
-            }
-          }
-        }
-      ],
+      "transformations": [],
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1623,14 +2245,16 @@
       },
       "yaxes": [
         {
-          "format": "short",
-          "label": null,
+          "$$hashKey": "object:1022",
+          "format": "none",
+          "label": "Events/sec",
           "logBase": 1,
           "max": null,
           "min": null,
           "show": true
         },
         {
+          "$$hashKey": "object:1023",
           "format": "percentunit",
           "label": null,
           "logBase": 1,
@@ -1645,63 +2269,73 @@
       }
     },
     {
-      "aliasColors": {},
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                0.75
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Archiver appliance 1 connectivity ratio below 75% \n@channel",
+        "name": "pscaa01 - Connected PV ratio",
+        "noDataState": "no_data",
+        "notifications": [
+          {
+            "uid": "5kg2bmqZz"
+          }
+        ]
+      },
+      "aliasColors": {
+        "Connected Count": "green",
+        "Connected Ratio": "rgb(174, 174, 174)",
+        "PV Count": "red"
+      },
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "Archiver Statistics - pscaa02 (archstats/elastic)",
+      "datasource": "Archiver Statistics",
       "fieldConfig": {
         "defaults": {
           "custom": {},
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
+            "steps": []
           }
         },
         "overrides": [
           {
             "matcher": {
               "id": "byName",
-              "options": "Connected Ratio"
+              "options": "Average connected_pv_count / Average total_pv_count"
             },
             "properties": [
               {
                 "id": "unit",
                 "value": "percentunit"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average total_pv_count"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "PV Count"
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Average connected_pv_count"
-            },
-            "properties": [
-              {
-                "id": "displayName",
-                "value": "Connected Count"
               }
             ]
           }
@@ -1712,12 +2346,12 @@
       "gridPos": {
         "h": 7,
         "w": 12,
-        "x": 12,
-        "y": 27
+        "x": 0,
+        "y": 77
       },
       "hiddenSeries": false,
-      "id": 14,
-      "interval": "30s",
+      "id": 19,
+      "interval": "1m",
       "legend": {
         "avg": false,
         "current": false,
@@ -1734,16 +2368,12 @@
         "alertThreshold": true
       },
       "percentage": false,
-      "pluginVersion": "7.3.4",
+      "pluginVersion": "7.4.3",
       "pointradius": 0.5,
       "points": true,
       "renderer": "flot",
-      "seriesOverrides": [
-        {
-          "alias": "Connected Ratio",
-          "yaxis": 2
-        }
-      ],
+      "repeat": null,
+      "seriesOverrides": [],
       "spaceLength": 10,
       "stack": false,
       "steppedLine": true,
@@ -1751,11 +2381,12 @@
         {
           "bucketAggs": [
             {
+              "$$hashKey": "object:1422",
               "field": "@timestamp",
               "id": "2",
               "settings": {
-                "interval": "10s",
-                "min_doc_count": "1",
+                "interval": "auto",
+                "min_doc_count": 0,
                 "trimEdges": 0
               },
               "type": "date_histogram"
@@ -1763,53 +2394,80 @@
           ],
           "metrics": [
             {
+              "$$hashKey": "object:1420",
               "field": "total_pv_count",
+              "hide": true,
               "id": "1",
+              "meta": {},
+              "pipelineVariables": [
+                {
+                  "$$hashKey": "object:1438",
+                  "name": "var1",
+                  "pipelineAgg": "select metric"
+                }
+              ],
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "$$hashKey": "object:1469",
+              "field": "connected_pv_count",
+              "hide": true,
+              "id": "3",
               "meta": {},
               "settings": {},
               "type": "avg"
             },
             {
-              "field": "connected_pv_count",
-              "id": "3",
+              "$$hashKey": "object:1481",
+              "field": "select field",
+              "id": "4",
               "meta": {},
-              "settings": {},
-              "type": "avg"
+              "pipelineVariables": [
+                {
+                  "$$hashKey": "object:1492",
+                  "name": "connected",
+                  "pipelineAgg": "3"
+                },
+                {
+                  "$$hashKey": "object:1497",
+                  "name": "total",
+                  "pipelineAgg": "1"
+                }
+              ],
+              "settings": {
+                "script": "params.connected / params.total"
+              },
+              "type": "bucket_script"
             }
           ],
-          "query": "",
+          "query": "appliance_identity:pscaa01",
           "refId": "A",
           "timeField": "@timestamp"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "$$hashKey": "object:1899",
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "lt",
+          "value": 0.75,
+          "visible": true,
+          "yaxis": "left"
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "pscaa02 - PV Count",
+      "title": "pscaa01 - PV Connectivity Ratio",
       "tooltip": {
         "shared": true,
         "sort": 0,
         "value_type": "individual"
       },
-      "transformations": [
-        {
-          "id": "calculateField",
-          "options": {
-            "alias": "Connected Ratio",
-            "binary": {
-              "left": "Average connected_pv_count",
-              "operator": "/",
-              "reducer": "sum",
-              "right": "Average total_pv_count"
-            },
-            "mode": "binary",
-            "reduce": {
-              "reducer": "sum"
-            }
-          }
-        }
-      ],
+      "transformations": [],
       "type": "graph",
       "xaxis": {
         "buckets": null,
@@ -1820,14 +2478,17 @@
       },
       "yaxes": [
         {
-          "format": "short",
+          "$$hashKey": "object:738",
+          "decimals": null,
+          "format": "percentunit",
           "label": null,
           "logBase": 1,
-          "max": null,
-          "min": null,
+          "max": "1",
+          "min": "0",
           "show": true
         },
         {
+          "$$hashKey": "object:739",
           "format": "percentunit",
           "label": null,
           "logBase": 1,
@@ -1840,14 +2501,298 @@
         "align": false,
         "alignLevel": null
       }
+    },
+    {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                0.75
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "5m",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "avg"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "5m",
+        "frequency": "1m",
+        "handler": 1,
+        "message": "Archiver appliance 2 connectivity ratio below 75%\n@channel",
+        "name": "pscaa02 - Connected PV ratio",
+        "noDataState": "no_data",
+        "notifications": [
+          {
+            "uid": "5kg2bmqZz"
+          }
+        ]
+      },
+      "aliasColors": {
+        "Connected Count": "green",
+        "Connected Ratio": "rgb(174, 174, 174)",
+        "PV Count": "red"
+      },
+      "bars": false,
+      "dashLength": 10,
+      "dashes": false,
+      "datasource": "Archiver Statistics",
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": []
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Average connected_pv_count / Average total_pv_count"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          }
+        ]
+      },
+      "fill": 1,
+      "fillGradient": 0,
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "hiddenSeries": false,
+      "id": 21,
+      "interval": "1m",
+      "legend": {
+        "avg": false,
+        "current": false,
+        "max": false,
+        "min": false,
+        "show": true,
+        "total": false,
+        "values": false
+      },
+      "lines": true,
+      "linewidth": 2,
+      "nullPointMode": "connected",
+      "options": {
+        "alertThreshold": true
+      },
+      "percentage": false,
+      "pluginVersion": "7.4.3",
+      "pointradius": 0.5,
+      "points": true,
+      "renderer": "flot",
+      "seriesOverrides": [
+        {
+          "$$hashKey": "object:731",
+          "alias": "Connected Ratio",
+          "yaxis": 2
+        }
+      ],
+      "spaceLength": 10,
+      "stack": false,
+      "steppedLine": true,
+      "targets": [
+        {
+          "bucketAggs": [
+            {
+              "$$hashKey": "object:1422",
+              "field": "@timestamp",
+              "id": "2",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": 0,
+                "trimEdges": 0
+              },
+              "type": "date_histogram"
+            }
+          ],
+          "metrics": [
+            {
+              "$$hashKey": "object:1420",
+              "field": "total_pv_count",
+              "hide": true,
+              "id": "1",
+              "meta": {},
+              "pipelineVariables": [
+                {
+                  "$$hashKey": "object:1438",
+                  "name": "var1",
+                  "pipelineAgg": "select metric"
+                }
+              ],
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "$$hashKey": "object:1469",
+              "field": "connected_pv_count",
+              "hide": true,
+              "id": "3",
+              "meta": {},
+              "settings": {},
+              "type": "avg"
+            },
+            {
+              "$$hashKey": "object:1481",
+              "field": "select field",
+              "id": "4",
+              "meta": {},
+              "pipelineVariables": [
+                {
+                  "$$hashKey": "object:1492",
+                  "name": "connected",
+                  "pipelineAgg": "3"
+                },
+                {
+                  "$$hashKey": "object:1497",
+                  "name": "total",
+                  "pipelineAgg": "1"
+                }
+              ],
+              "settings": {
+                "script": "params.connected / params.total"
+              },
+              "type": "bucket_script"
+            }
+          ],
+          "query": "appliance_identity:pscaa02\n",
+          "refId": "A",
+          "timeField": "@timestamp"
+        }
+      ],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "lt",
+          "value": 0.75,
+          "visible": true
+        }
+      ],
+      "timeFrom": null,
+      "timeRegions": [],
+      "timeShift": null,
+      "title": "pscaa02 - PV Connectivity Ratio",
+      "tooltip": {
+        "shared": true,
+        "sort": 0,
+        "value_type": "individual"
+      },
+      "transformations": [],
+      "type": "graph",
+      "xaxis": {
+        "buckets": null,
+        "mode": "time",
+        "name": null,
+        "show": true,
+        "values": []
+      },
+      "yaxes": [
+        {
+          "$$hashKey": "object:738",
+          "decimals": null,
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": "1",
+          "min": "0",
+          "show": true
+        },
+        {
+          "$$hashKey": "object:739",
+          "format": "percentunit",
+          "label": null,
+          "logBase": 1,
+          "max": null,
+          "min": null,
+          "show": false
+        }
+      ],
+      "yaxis": {
+        "align": false,
+        "alignLevel": null
+      }
     }
   ],
-  "refresh": "5s",
-  "schemaVersion": 26,
+  "refresh": false,
+  "schemaVersion": 27,
   "style": "dark",
-  "tags": [],
+  "tags": [
+    "archiver"
+  ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "tags": [],
+          "text": [
+            "pscaa01",
+            "pscaa02"
+          ],
+          "value": [
+            "pscaa01",
+            "pscaa02"
+          ]
+        },
+        "description": null,
+        "error": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "Appliance",
+        "multi": true,
+        "name": "appliance",
+        "options": [
+          {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": true,
+            "text": "pscaa01",
+            "value": "pscaa01"
+          },
+          {
+            "selected": true,
+            "text": "pscaa02",
+            "value": "pscaa02"
+          }
+        ],
+        "query": "pscaa01,pscaa02",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      }
+    ]
   },
   "time": {
     "from": "now-24h",
@@ -1855,8 +2800,6 @@
   },
   "timepicker": {
     "refresh_intervals": [
-      "10s",
-      "30s",
       "1m",
       "5m",
       "15m",
@@ -1868,6 +2811,6 @@
   },
   "timezone": "",
   "title": "Archiver Appliance Statistics",
-  "uid": "jGxBqb0Mk",
-  "version": 24
+  "uid": "jGxBqb0MK",
+  "version": 11
 }
