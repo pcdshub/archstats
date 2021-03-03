@@ -74,10 +74,3 @@ EPICS::
     ARCH:pscaa02:EngineHeap        48.1998
     ARCH:pscaa02:EtlHeap           23.9628
     ARCH:pscaa02:RetrievalHeap     21.7903
-
-
-Grafana
--------
-
-Ensure the data source has a minimum interval of 1 minute configured - this is
-the pre-determined update rate archstats uses.
