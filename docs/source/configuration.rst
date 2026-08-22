@@ -20,7 +20,7 @@ Configuration
       - Description
 
     * - ARCHIVER_URL
-      - http://pscaa02.slac.stanford.edu:17665/
+      - http://psctlws01.pcdsn:8329/
       - The management port URL. The default is SLAC-specific (sorry!)
 
     * - ARCHSTATS_DATABASE

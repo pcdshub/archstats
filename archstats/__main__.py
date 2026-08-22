@@ -14,7 +14,7 @@ SUPPORTED_DATABASE_BACKENDS = {'elastic', }
 def get_archiver_url() -> str:
     """Get the archiver appliance interface URL from the environment."""
     archiver_url = os.environ.get(
-        'ARCHIVER_URL', 'http://pscaa02.slac.stanford.edu:17665/'
+        'ARCHIVER_URL', 'http://psctlws01.slac.stanford.edu:8329/'
     )
     if not archiver_url:
         raise RuntimeError('ARCHIVER_URL not set')
