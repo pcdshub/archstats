@@ -19,7 +19,7 @@ requirements:
       - python >=3.6
       - aiohttp
       - caproto >=0.7.1
-      - elasticsearch >=7.8.0
+      - elasticsearch >=8.14.0
       - inflection
 
 test:
