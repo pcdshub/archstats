@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ARCH_HOST=${ARCH_HOST=localhost:17665}
+ARCH_HOST=${ARCH_HOST=psctlws01.pcdsn:8329}
 APPLIANCES=${APPLIANCES=pscaa01 pscaa02}
 
 echo "Caching information for testing from ${ARCH_HOST}..."

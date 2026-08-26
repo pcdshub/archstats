@@ -273,7 +273,6 @@ class ElasticHandler(DatabaseHandler):
         result = await self.es.search(
             index=self.index_search_glob,
             body=self.get_last_document_query,
-            size=1,
         )
 
         if result and result['hits']:
